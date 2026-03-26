@@ -1,0 +1,175 @@
+### Archivo para REST Client: horarios-api.rest
+
+# AUTENTICACIÓN
+POST http://localhost/api/auth/register
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Ejemplo",
+  "email": "ejemplo@email.com",
+  "password": "password",
+  "password_confirmation": "password"
+}
+
+###
+POST http://localhost/api/auth/login
+Content-Type: application/json
+Accept: application/json
+
+{
+  "email": "ejemplo@email.com",
+  "password": "password"
+}
+
+###
+POST http://localhost/api/auth/logout
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {{token}}
+
+
+# USUARIOS (requiere admin)
+GET http://localhost/api/users
+Accept: application/json
+Authorization: Bearer {{token}}
+
+###
+GET http://localhost/api/users/1
+Accept: application/json
+Authorization: Bearer {{token}}
+
+###
+POST http://localhost/api/users
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "Nuevo Usuario",
+  "email": "nuevo@email.com",
+  "password": "password",
+  "password_confirmation": "password",
+  "role": "trabajador"
+}
+
+###
+PUT http://localhost/api/users/1
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "Usuario Editado",
+  "email": "editado@email.com",
+  "role": "jefe"
+}
+
+###
+DELETE http://localhost/api/users/1
+Accept: application/json
+Authorization: Bearer {{token}}
+
+
+# PERFIL USUARIO AUTENTICADO
+GET http://localhost/api/user/profile
+Accept: application/json
+Authorization: Bearer {{token}}
+
+
+# SCHEDULES
+GET http://localhost/api/schedules
+Accept: application/json
+Authorization: Bearer {{token}}
+
+###
+POST http://localhost/api/schedules
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {{token}}
+
+{
+  "user_id": 1,
+  "fecha_inicio": "2024-04-01",
+  "fecha_fin": "2024-04-30"
+}
+
+###
+PUT http://localhost/api/schedules/1
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {{token}}
+
+{
+  "fecha_inicio": "2024-05-01",
+  "fecha_fin": "2024-05-31"
+}
+
+###
+DELETE http://localhost/api/schedules/1
+Accept: application/json
+Authorization: Bearer {{token}}
+
+###
+POST http://localhost/api/schedules/generate
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {{token}}
+
+{
+  "user_id": 1,
+  "fecha_inicio": "2024-04-01",
+  "fecha_fin": "2024-04-30"
+}
+
+###
+POST http://localhost/api/schedules/1/publish
+Accept: application/json
+Authorization: Bearer {{token}}
+
+###
+GET http://localhost/api/schedules/user/1/total-hours
+Accept: application/json
+Authorization: Bearer {{token}}
+
+
+# SHIFTS
+GET http://localhost/api/shifts
+Accept: application/json
+Authorization: Bearer {{token}}
+
+###
+POST http://localhost/api/shifts
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {{token}}
+
+{
+  "schedule_id": 1,
+  "hora_inicio": "08:00",
+  "hora_fin": "16:00",
+  "dia": "2024-04-01"
+}
+
+###
+PUT http://localhost/api/shifts/1
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {{token}}
+
+{
+  "hora_inicio": "09:00",
+  "hora_fin": "17:00",
+  "dia": "2024-04-01"
+}
+
+###
+DELETE http://localhost/api/shifts/1
+Accept: application/json
+Authorization: Bearer {{token}}
+
+###
+GET http://localhost/api/my-shifts
+Accept: application/json
+Authorization: Bearer {{token}}
+
