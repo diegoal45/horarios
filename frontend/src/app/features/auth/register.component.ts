@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
@@ -24,7 +24,8 @@ export class RegisterComponent implements OnInit {
     private fb: FormBuilder,
     private authService: AuthService,
     private toastService: ToastService,
-    private router: Router
+    private router: Router,
+    private cdr: ChangeDetectorRef
   ) {
     this.initForm();
   }
@@ -60,11 +61,12 @@ export class RegisterComponent implements OnInit {
 
   onSubmit(): void {
     if (this.registerForm.invalid) {
+      this.registerForm.reset();
       return;
     }
 
     this.loading = true;
-    this.error = null;
+    this.cdr.markForCheck();
 
     const userData = {
       name: this.registerForm.get('name')?.value,
@@ -72,62 +74,20 @@ export class RegisterComponent implements OnInit {
       password: this.registerForm.get('password')?.value
     };
 
-    console.log('RegisterComponent.onSubmit - Iniciando registro con:', { name: userData.name, email: userData.email });
-
     this.authService.register(userData).subscribe({
       next: (response) => {
-        try {
-          console.log('RegisterComponent - Registro exitoso:', response);
-          const successMsg = '¡Cuenta creada exitosamente! Redirigiendo al login...';
-          console.log('RegisterComponent - Mostrando toast success con mensaje:', successMsg);
-          
-          this.success = true;
-          this.toastService.success(successMsg);
-          setTimeout(() => this.router.navigate(['/login']), 2000);
-        } catch (e) {
-          console.error('RegisterComponent - Exception en success handler:', e);
-        } finally {
-          this.loading = false;
-        }
+        this.toastService.success('¡Cuenta creada! Redirigiendo...');
+        setTimeout(() => this.router.navigate(['/login']), 500);
       },
       error: (err) => {
-        try {
-          console.log('RegisterComponent - Error en registro:', err);
-          console.log('RegisterComponent - err.error:', err.error);
-          console.log('RegisterComponent - err.status:', err.status);
-          console.log('RegisterComponent - err.statusText:', err.statusText);
-          
-          // Extraer mensaje de error del API
-          let errorMessage = 'Error en el registro. Intenta con otra información.';
-          
-          if (err.error?.message) {
-            errorMessage = err.error.message;
-          } else if (err.error?.errors) {
-            // Si hay errores de validación (Laravel format)
-            const errorMessages = [];
-            for (const field in err.error.errors) {
-              if (Array.isArray(err.error.errors[field])) {
-                errorMessages.push(err.error.errors[field][0]);
-              }
-            }
-            if (errorMessages.length > 0) {
-              errorMessage = errorMessages.join('. ');
-            }
-          } else if (err.statusText) {
-            errorMessage = err.statusText;
-          }
-          
-          console.log('RegisterComponent - errorMessage final:', errorMessage);
-          console.log('RegisterComponent - Mostrando toast error con mensaje:', errorMessage);
-          
-          this.toastService.error(errorMessage);
-          this.error = errorMessage;
-        } catch (e) {
-          console.error('RegisterComponent - Exception en error handler:', e);
-          this.toastService.error('Error inesperado. Por favor intente de nuevo.');
-        } finally {
-          this.loading = false;
+        this.loading = false;
+        this.cdr.markForCheck();
+        let errorMessage = 'Error en el registro';
+        if (err.error?.message) {
+          errorMessage = err.error.message;
         }
+        this.toastService.error(errorMessage);
+        this.registerForm.reset();
       }
     });
   }

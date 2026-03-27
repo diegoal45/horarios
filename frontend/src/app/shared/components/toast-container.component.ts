@@ -1,14 +1,15 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ToastService, Toast } from '../services/toast.service';
 import { trigger, transition, style, animate } from '@angular/animations';
-import { Subject } from 'rxjs';
+import { Subject, interval } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 
 @Component({
   selector: 'app-toast-container',
   standalone: true,
   imports: [CommonModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="fixed top-6 right-6 z-50 space-y-3 max-w-sm pointer-events-none">
       <div 
@@ -39,23 +40,18 @@ import { takeUntil } from 'rxjs/operators';
         </div>
 
         <!-- Progress bar -->
-        <div class="mt-2 h-1 bg-current opacity-20 rounded-full overflow-hidden">
+        <div class="mt-3 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full overflow-hidden">
           <div 
-            class="h-full bg-current"
-            [style.animation]="'progress ' + (toast.duration / 1000) + 's linear forwards'"
+            class="h-full bg-current rounded-full"
+            [style.width.%]="getProgressPercentage(toast)"
           ></div>
         </div>
       </div>
     </div>
   `,
   styles: [`
-    @keyframes progress {
-      from {
-        width: 100%;
-      }
-      to {
-        width: 0%;
-      }
+    :host {
+      --toast-duration: 4s;
     }
   `],
   animations: [
@@ -73,8 +69,9 @@ import { takeUntil } from 'rxjs/operators';
 export class ToastContainerComponent implements OnInit, OnDestroy {
   toasts: Toast[] = [];
   private destroy$ = new Subject<void>();
+  private timers = new Map<string, ReturnType<typeof setTimeout>>();
 
-  constructor(private toastService: ToastService) {
+  constructor(private toastService: ToastService, private cdr: ChangeDetectorRef) {
     console.log('ToastContainerComponent constructor - servicio inyectado');
   }
 
@@ -86,17 +83,73 @@ export class ToastContainerComponent implements OnInit, OnDestroy {
         console.log('Toast actualizado:', toasts);
         console.log('Toasts array:', toasts.map(t => ({ id: t.id, message: t.message, type: t.type })));
         this.toasts = toasts;
+        
+        // Limpiar timers de toasts que ya no existen
+        const activeIds = new Set(toasts.map(t => t.id));
+        this.timers.forEach((_, id) => {
+          if (!activeIds.has(id)) {
+            const timer = this.timers.get(id);
+            if (timer) {
+              clearTimeout(timer);
+            }
+            this.timers.delete(id);
+          }
+        });
+        
+        // Establecer timers para remover toasts automáticamente
+        toasts.forEach(toast => {
+          if (!this.timers.has(toast.id)) {
+            const expiresAt = toast.createdAt + toast.duration;
+            const timeToExpire = Math.max(0, expiresAt - Date.now());
+            
+            const timer = setTimeout(() => {
+              console.log('Toast expiró:', toast.id);
+              this.toastService.remove(toast.id);
+              this.timers.delete(toast.id);
+            }, timeToExpire);
+            
+            this.timers.set(toast.id, timer);
+          }
+        });
+        
+        // Forzar actualización visual
+        this.cdr.markForCheck();
+      });
+
+    // Actualizar el progreso cada 50ms para mostrar la barra suavemente
+    interval(50)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.cdr.markForCheck();
       });
   }
 
   ngOnDestroy(): void {
+    // Limpiar todos los timers
+    this.timers.forEach(timer => clearTimeout(timer));
+    this.timers.clear();
+    
     this.destroy$.next();
     this.destroy$.complete();
   }
 
+  getProgressPercentage(toast: Toast): number {
+    const now = Date.now();
+    const elapsed = now - toast.createdAt;
+    const remaining = Math.max(0, toast.duration - elapsed);
+    const percentage = (remaining / toast.duration) * 100;
+    return Math.min(100, Math.max(0, percentage));
+  }
+
   removeToast(id: string): void {
     console.log('Removiendo toast con ID:', id);
+    const timer = this.timers.get(id);
+    if (timer) {
+      clearTimeout(timer);
+      this.timers.delete(id);
+    }
     this.toastService.remove(id);
+    this.cdr.markForCheck();
   }
 
   trackByToastId(index: number, toast: Toast): string {
