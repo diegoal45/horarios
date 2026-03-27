@@ -21,11 +21,9 @@ class AuthController extends Controller
         $user = User::create([
             'name' => $data['name'],
             'email' => $data['email'],
-            'password' => $data['password'],
-            'role' => $data['role'],
+            'password' => Hash::make($data['password']),
+            'role' => $data['role'] ?? 'trabajador',
         ]);
-        // Opcional: asignar rol en tabla pivote si usas roles múltiples
-        // $user->roles()->attach($roleId);
         return response()->json(['user' => $user], 201);
     }
 

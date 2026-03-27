@@ -3,53 +3,54 @@
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-// Auth Routes
-Route::get('/login', function () {
-    return Inertia::render('Login');
-})->name('login');
+// Guest Routes (Login & Register)
+Route::middleware(['guest'])->group(function () {
+    Route::get('/login', function () {
+        return Inertia::render('Login');
+    })->name('login');
 
-Route::get('/register', function () {
-    return Inertia::render('Register');
-})->name('register');
-
-// Dashboard
-Route::get('/', function () {
-    return Inertia::render('Dashboard');
+    Route::get('/register', function () {
+        return Inertia::render('Register');
+    })->name('register');
 });
 
-// Schedules
-Route::get('/schedules', function () {
-    return Inertia::render('Schedules/Index');
-});
+// Authenticated Routes
+Route::middleware(['auth'])->group(function () {
+    // Dashboard
+    Route::get('/', function () {
+        return Inertia::render('Dashboard');
+    })->name('dashboard');
 
-Route::get('/schedules/create', function () {
-    return Inertia::render('Schedules/Create');
-});
+    // Users Management (Admin)
+    Route::get('/users', function () {
+        return Inertia::render('Users/Index');
+    })->name('users.index');
 
-Route::get('/schedules/{id}/edit', function ($id) {
-    return Inertia::render('Schedules/Edit', ['id' => $id]);
-});
+    Route::get('/users/create', function () {
+        return Inertia::render('Users/Create');
+    })->name('users.create');
 
-// Shifts
-Route::get('/shifts', function () {
-    return Inertia::render('Shifts/Index');
-});
+    // Schedules Management (Jefe)
+    Route::get('/schedules', function () {
+        return Inertia::render('Schedules/Index');
+    })->name('schedules.index');
 
-Route::get('/shifts/create', function () {
-    return Inertia::render('Shifts/Create');
-});
+    Route::get('/schedules/create', function () {
+        return Inertia::render('Schedules/Create');
+    })->name('schedules.create');
 
-Route::get('/shifts/{id}/edit', function ($id) {
-    return Inertia::render('Shifts/Edit', ['id' => $id]);
-});
+    Route::get('/schedules/{id}/edit', function ($id) {
+        return Inertia::render('Schedules/Edit', ['id' => $id]);
+    })->name('schedules.edit');
 
-// Users
-Route::get('/users', function () {
-    return Inertia::render('Users/Index');
-});
+    // My Shifts (Trabajador)
+    Route::get('/my-shifts', function () {
+        return Inertia::render('Shifts/MyShifts');
+    })->name('my-shifts');
 
-Route::get('/users/create', function () {
-    return Inertia::render('Users/Create');
+    Route::get('/shifts', function () {
+        return Inertia::render('Shifts/Index');
+    })->name('shifts.index');
 });
 
 Route::get('/users/{id}/edit', function ($id) {
