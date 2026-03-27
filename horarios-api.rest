@@ -1,63 +1,64 @@
 ### Archivo para REST Client: horarios-api.rest
 
 # AUTENTICACIÓN
-POST http://localhost/api/auth/register
+POST http://localhost:8000/api/auth/register
 Content-Type: application/json
 Accept: application/json
 
 {
   "name": "Ejemplo",
   "email": "ejemplo@email.com",
-  "password": "password",
-  "password_confirmation": "password"
+  "password": "password1.",
+  "password_confirmation": "password",
+  "role": "administrador"
 }
 
 ###
-POST http://localhost/api/auth/login
+POST http://localhost:8000/api/auth/login
 Content-Type: application/json
 Accept: application/json
 
 {
   "email": "ejemplo@email.com",
-  "password": "password"
+  "password": "password1."
 }
 
 ###
-POST http://localhost/api/auth/logout
+POST http://localhost:8000/api/auth/logout
 Content-Type: application/json
 Accept: application/json
-Authorization: Bearer {{token}}
+Authorization: Bearer 3ksmJhEKI0yowULHUBzOtwpkOQbkPCzwbLADjIbpf1c398e7
 
-
+###
 # USUARIOS (requiere admin)
-GET http://localhost/api/users
+GET http://localhost:8000/api/users
 Accept: application/json
-Authorization: Bearer {{token}}
+Authorization: Bearer 3ksmJhEKI0yowULHUBzOtwpkOQbkPCzwbLADjIbpf1c398e7
 
 ###
-GET http://localhost/api/users/1
+GET http://localhost:8000/api/users/2
 Accept: application/json
-Authorization: Bearer {{token}}
+Authorization: Bearer 3ksmJhEKI0yowULHUBzOtwpkOQbkPCzwbLADjIbpf1c398e7
 
 ###
-POST http://localhost/api/users
+POST http://localhost:8000/api/users
 Content-Type: application/json
 Accept: application/json
-Authorization: Bearer {{token}}
+Authorization: Bearer 3ksmJhEKI0yowULHUBzOtwpkOQbkPCzwbLADjIbpf1c398e7
 
 {
-  "name": "Nuevo Usuario",
+  "name": "Laura Tonta",
   "email": "nuevo@email.com",
-  "password": "password",
+  "password": "password1.",
   "password_confirmation": "password",
   "role": "trabajador"
 }
 
 ###
-PUT http://localhost/api/users/1
+PUT http://localhost:8000/api/users/1
 Content-Type: application/json
 Accept: application/json
-Authorization: Bearer {{token}}
+Authorization: Bearer 3ksmJhEKI0yowULHUBzOtwpkOQbkPCzwbLADjIbpf1c398e7
 
 {
   "name": "Usuario Editado",
@@ -66,27 +67,27 @@ Authorization: Bearer {{token}}
 }
 
 ###
-DELETE http://localhost/api/users/1
+DELETE http://localhost:8000/api/users/3
 Accept: application/json
-Authorization: Bearer {{token}}
-
-
-# PERFIL USUARIO AUTENTICADO
-GET http://localhost/api/user/profile
-Accept: application/json
-Authorization: Bearer {{token}}
-
-
-# SCHEDULES
-GET http://localhost/api/schedules
-Accept: application/json
-Authorization: Bearer {{token}}
+Authorization: Bearer 3ksmJhEKI0yowULHUBzOtwpkOQbkPCzwbLADjIbpf1c398e7
 
 ###
-POST http://localhost/api/schedules
+# PERFIL USUARIO AUTENTICADO
+GET http://localhost:8000/api/user/profile
+Accept: application/json
+Authorization: Bearer 3ksmJhEKI0yowULHUBzOtwpkOQbkPCzwbLADjIbpf1c398e7
+
+###
+# SCHEDULES
+GET http://localhost:8000/api/schedules
+Accept: application/json
+Authorization: Bearer 3ksmJhEKI0yowULHUBzOtwpkOQbkPCzwbLADjIbpf1c398e7
+
+###
+POST http://localhost:8000/api/schedules
 Content-Type: application/json
 Accept: application/json
-Authorization: Bearer {{token}}
+Authorization: Bearer 3ksmJhEKI0yowULHUBzOtwpkOQbkPCzwbLADjIbpf1c398e7
 
 {
   "user_id": 1,
@@ -95,10 +96,10 @@ Authorization: Bearer {{token}}
 }
 
 ###
-PUT http://localhost/api/schedules/1
+PUT http://localhost:8000/api/schedules/1
 Content-Type: application/json
 Accept: application/json
-Authorization: Bearer {{token}}
+Authorization: Bearer 3ksmJhEKI0yowULHUBzOtwpkOQbkPCzwbLADjIbpf1c398e7
 
 {
   "fecha_inicio": "2024-05-01",
@@ -106,12 +107,12 @@ Authorization: Bearer {{token}}
 }
 
 ###
-DELETE http://localhost/api/schedules/1
+DELETE http://localhost:8000/api/schedules/1
 Accept: application/json
 Authorization: Bearer {{token}}
 
 ###
-POST http://localhost/api/schedules/generate
+POST http://localhost:8000/api/schedules/generate
 Content-Type: application/json
 Accept: application/json
 Authorization: Bearer {{token}}
@@ -123,23 +124,23 @@ Authorization: Bearer {{token}}
 }
 
 ###
-POST http://localhost/api/schedules/1/publish
+POST http://localhost:8000/api/schedules/1/publish
 Accept: application/json
 Authorization: Bearer {{token}}
 
 ###
-GET http://localhost/api/schedules/user/1/total-hours
+GET http://localhost:8000/api/schedules/user/1/total-hours
 Accept: application/json
 Authorization: Bearer {{token}}
 
 
 # SHIFTS
-GET http://localhost/api/shifts
+GET http://localhost:8000/api/shifts
 Accept: application/json
 Authorization: Bearer {{token}}
 
 ###
-POST http://localhost/api/shifts
+POST http://localhost:8000/api/shifts
 Content-Type: application/json
 Accept: application/json
 Authorization: Bearer {{token}}
@@ -152,7 +153,7 @@ Authorization: Bearer {{token}}
 }
 
 ###
-PUT http://localhost/api/shifts/1
+PUT http://localhost:8000/api/shifts/1
 Content-Type: application/json
 Accept: application/json
 Authorization: Bearer {{token}}
@@ -164,12 +165,12 @@ Authorization: Bearer {{token}}
 }
 
 ###
-DELETE http://localhost/api/shifts/1
+DELETE http://localhost:8000/api/shifts/1
 Accept: application/json
 Authorization: Bearer {{token}}
 
 ###
-GET http://localhost/api/my-shifts
+GET http://localhost:8000/api/my-shifts
 Accept: application/json
 Authorization: Bearer {{token}}
 
