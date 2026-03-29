@@ -183,17 +183,18 @@ export class SidebarNavComponent implements OnInit {
       this.roleLabel.set('Admin');
       this.navItems.set([
         { icon: 'home', label: 'Inicio', route: '/dashboard/admin', isActive: true },
-        { icon: 'group', label: 'Usuarios', route: '/dashboard/usuarios', isActive: false },
-        { icon: 'calendar_today', label: 'Horarios', route: '/dashboard/horarios', isActive: false },
-        { icon: 'timer', label: 'Horas trabajadas', route: '/dashboard/horas-trabajadas', isActive: false }
+        { icon: 'group', label: 'Usuarios', route: '/dashboard/admin/users', isActive: false },
+        { icon: 'groups', label: 'Equipos', route: '/dashboard/admin/equipos', isActive: false },
+        { icon: 'calendar_today', label: 'Horarios', route: '/dashboard/admin/schedules', isActive: false },
+        { icon: 'schedule', label: 'Turnos', route: '/dashboard/admin/turnos', isActive: false },
+        { icon: 'timer', label: 'Horas trabajadas', route: '/dashboard/admin/hours', isActive: false }
       ]);
     } else if (lowerRole === 'jefe') {
       this.roleLabel.set('Jefe');
       this.navItems.set([
         { icon: 'home', label: 'Inicio', route: '/dashboard/jefe', isActive: true },
-        { icon: 'group', label: 'Mi Equipo', route: '/dashboard/jefe/equipo', isActive: false },
-        { icon: 'calendar_today', label: 'Mis Horarios', route: '/dashboard/jefe/mis-horarios', isActive: false },
-        { icon: 'assessment', label: 'Reportes', route: '/dashboard/jefe/reporte-horas', isActive: false }
+        { icon: 'calendar_today', label: 'Mis Horarios', route: '/dashboard/jefe/schedules', isActive: false },
+        { icon: 'assessment', label: 'Reportes', route: '/dashboard/jefe/reports', isActive: false }
       ]);
     } else if (lowerRole === 'trabajador') {
       this.roleLabel.set('Trabajador');

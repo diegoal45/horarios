@@ -16,6 +16,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->date('week_start'); // Fecha de inicio de la semana
             $table->integer('total_hours')->default(0); // Horas totales trabajadas esa semana
+            $table->boolean('published')->default(false); // Horarios publicados
             $table->timestamps();
             $table->unique(['user_id', 'week_start']);
         });

@@ -100,7 +100,16 @@ export class AuthService {
    */
   refreshUser(): Observable<User> {
     return this.http.get<User>(`${this.apiUrl}/user/profile`).pipe(
-      tap(user => this.userSubject.next(user))
+      tap(user => {
+        // Actualizar el BehaviorSubject con el usuario refrescado
+        this.userSubject.next(user);
+        // También actualizar localStorage
+        localStorage.setItem(this.userKey, JSON.stringify(user));
+        console.log('%c[AuthService] Usuario refrescado y guardado en localStorage:', 'color: green; font-weight: bold', {
+          user: user.email,
+          role: user.role
+        });
+      })
     );
   }
 

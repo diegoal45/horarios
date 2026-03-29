@@ -16,7 +16,7 @@ interface ScheduleBlock {
 }
 
 interface Employee {
-  id: string;
+  id: string | number;
   name: string;
   role?: string;
 }
@@ -195,71 +195,55 @@ export class ScheduleCalendarComponent implements OnInit {
   private loadSchedules(): void {
     if (!this.selectedEmployee) return;
 
-    // Mock schedules - in production, fetch from API
-    const mockSchedules: ScheduleBlock[] = [
-      {
-        id: '1',
-        title: 'Desarrollo Core',
-        task: 'Desarrollo Core',
-        startTime: '08:00',
-        endTime: '16:00',
-        type: 'Apertura',
-        color: 'green',
-        day: 1,
-        startRow: 1,
-        height: 8
-      },
-      {
-        id: '2',
-        title: 'Análisis de Datos',
-        task: 'Análisis de Datos',
-        startTime: '07:00',
-        endTime: '15:00',
-        type: 'Temprano',
-        color: 'green',
-        day: 2,
-        startRow: 0,
-        height: 8
-      },
-      {
-        id: '3',
-        title: 'Sprint Planning',
-        task: 'Sprint Planning',
-        startTime: '09:00',
-        endTime: '18:00',
-        type: 'Extendido',
-        color: 'teal',
-        day: 3,
-        startRow: 2,
-        height: 9
-      },
-      {
-        id: '4',
-        title: 'Mantenimiento',
-        task: 'Mantenimiento',
-        startTime: '08:00',
-        endTime: '16:00',
-        type: 'Apertura',
-        color: 'green',
-        day: 4,
-        startRow: 1,
-        height: 8
-      },
-      {
-        id: '5',
-        title: 'Revisión Semanal',
-        task: 'Revisión Semanal',
-        startTime: '08:00',
-        endTime: '14:00',
-        type: 'Corto',
-        color: 'orange',
-        day: 5,
-        startRow: 1,
-        height: 6
-      }
-    ];
+    // Load real schedules from API
+    this.apiService.getUserSchedules(this.selectedEmployee.id).subscribe({
+      next: (shifts: any[]) => {
+        // Transform API shifts into ScheduleBlock format
+        this.scheduleBlocks = shifts.map((shift, index) => {
+          const startHour = parseInt(shift.startTime.split(':')[0]);
+          const startMinutes = parseInt(shift.startTime.split(':')[1]);
+          const startRow = (startHour - 7) + (startMinutes / 60); // Calculate grid row relative to 7:00
+          
+          const endHour = parseInt(shift.endTime.split(':')[0]);
+          const endMinutes = parseInt(shift.endTime.split(':')[1]);
+          const endTotalHours = endHour + (endMinutes / 60);
+          const height = endTotalHours - startHour; // Height in hours
 
-    this.scheduleBlocks = mockSchedules;
+          // Determine type based on start time and duration
+          let type: 'Apertura' | 'Temprano' | 'Extendido' | 'Corto' = 'Apertura';
+          if (startHour < 8) type = 'Temprano';
+          if (height > 8) type = 'Extendido';
+          if (height < 6) type = 'Corto';
+
+          // Get day of week index, but add 1 because template expects 1-5 not 0-4
+          const dayMap = {
+            'Lunes': 1,
+            'Martes': 2,
+            'Miércoles': 3,
+            'Jueves': 4,
+            'Viernes': 5
+          };
+          const dayColumn = dayMap[shift.shift as keyof typeof dayMap] ?? 1;
+
+          return {
+            id: shift.id.toString(),
+            title: `${shift.shift}`,
+            task: `${shift.startTime} - ${shift.endTime}`,
+            startTime: shift.startTime,
+            endTime: shift.endTime,
+            type,
+            color: type === 'Temprano' ? 'green' : (type === 'Extendido' ? 'teal' : 'orange'),
+            day: dayColumn,
+            startRow,
+            height
+          };
+        });
+      },
+      error: (err) => {
+        console.error('Error loading employee schedules:', err);
+        this.scheduleBlocks = [];
+      }
+    });
   }
 
   getBlockClasses(block: ScheduleBlock): object {

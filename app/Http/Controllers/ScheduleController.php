@@ -94,16 +94,41 @@ class ScheduleController extends Controller
         return response()->json(['message' => 'Horario eliminado']);
     }
 
-    // Generar horarios automáticos para 6 trabajadores
-    public function generate(): JsonResponse
+    // Generar horarios automáticos para equipo (debe tener 6 miembros)
+    public function generate(\Illuminate\Http\Request $request): JsonResponse
     {
         $user = Auth::user();
         if (!$user) {
             return response()->json(['message' => 'No autenticado'], 401);
         }
-        // Solo jefe puede generar horarios
-        if ($user->role !== 'jefe') {
+
+        // Solo jefe y admin pueden generar horarios
+        if (!in_array($user->role, ['jefe', 'administrador'])) {
             return response()->json(['message' => 'No autorizado'], 403);
+        }
+
+        // Obtener el team_id del request
+        $teamId = $request->input('team_id');
+        if (!$teamId) {
+            return response()->json(['message' => 'team_id es requerido'], 422);
+        }
+
+        $team = \App\Models\Team::with('members')->find($teamId);
+        if (!$team) {
+            return response()->json(['message' => 'Equipo no encontrado'], 404);
+        }
+
+        // Validar que el usuario sea el líder del equipo (para jefe) o admin
+        if ($user->role === 'jefe' && $team->leader_id !== $user->id) {
+            return response()->json(['message' => 'No eres el líder de este equipo'], 403);
+        }
+
+        // Validar que el equipo tenga exactamente 6 miembros
+        if ($team->members->count() !== 6) {
+            return response()->json(
+                ['message' => "El equipo debe tener exactamente 6 miembros. Actualmente tiene {$team->members->count()}."],
+                422
+            );
         }
 
         // Configuración
@@ -111,21 +136,20 @@ class ScheduleController extends Controller
         $horaApertura = '07:00:00';
         $horaCierre = '19:00:00';
         $duracionTurno = 7; // horas
-        $trabajadores = \App\Models\User::where('role', 'trabajador')->get();
-        if ($trabajadores->count() < 6) {
-            return response()->json(['message' => 'Se requieren al menos 6 trabajadores.'], 422);
-        }
+        $trabajadores = $team->members;
+        $trabajadorIds = $trabajadores->pluck('id');
 
         // Calcular inicio de semana (lunes actual o siguiente)
         $now = now();
         $weekStart = $now->copy()->startOfWeek();
 
-        // Eliminar horarios y turnos de la semana actual
-        $trabajadorIds = $trabajadores->pluck('id');
-        $schedules = \App\Models\Schedule::whereIn('user_id', $trabajadorIds)
+        // Eliminiar horarios y turnos de la semana actual para TODOS los usuarios
+        // (no filtrar por team_id porque podría no estar seteado en datos antiguos)
+        $existingSchedules = \App\Models\Schedule::whereIn('user_id', $trabajadorIds)
             ->where('week_start', $weekStart->toDateString())
             ->get();
-        foreach ($schedules as $schedule) {
+        
+        foreach ($existingSchedules as $schedule) {
             $schedule->shifts()->delete();
             $schedule->delete();
         }
@@ -138,6 +162,7 @@ class ScheduleController extends Controller
         foreach ($trabajadores as $trabajador) {
             $schedulesMap[$trabajador->id] = \App\Models\Schedule::create([
                 'user_id' => $trabajador->id,
+                'team_id' => $team->id,
                 'week_start' => $weekStart->toDateString(),
                 'total_hours' => 0,
             ]);
@@ -191,27 +216,65 @@ class ScheduleController extends Controller
             $schedule->save();
         }
 
-        return response()->json(['message' => 'Horarios generados automáticamente para la semana actual.']);
+        return response()->json([
+            'message' => 'Horarios generados automáticamente para la semana actual.',
+            'team_id' => $team->id,
+            'week_start' => $weekStart->toDateString(),
+            'schedules_count' => count($schedulesMap)
+        ]);
     }
 
-    // Publicar horarios (ejemplo: cambiar un estado o notificar)
-    public function publish($id): JsonResponse
+    // Publicar horarios de un equipo (todos los schedules de la semana)
+    public function publish(\Illuminate\Http\Request $request): JsonResponse
     {
         $user = Auth::user();
         if (!$user) {
             return response()->json(['message' => 'No autenticado'], 401);
         }
-        $schedule = Schedule::find($id);
-        if (!$schedule) {
-            throw new ModelNotFoundException('Horario no encontrado');
-        }
-        // Solo jefe puede publicar horarios
-        if ($user->role !== 'jefe') {
+
+        // Solo jefe y admin pueden publicar
+        if (!in_array($user->role, ['jefe', 'administrador'])) {
             return response()->json(['message' => 'No autorizado'], 403);
         }
-        // Aquí iría la lógica para publicar el horario (por ejemplo, cambiar un campo published a true)
-        // $schedule->published = true; $schedule->save();
-        return response()->json(['message' => 'Horario publicado (implementación pendiente)']);
+
+        // Obtener team_id y week_start del request
+        $teamId = $request->input('team_id');
+        $weekStart = $request->input('week_start');
+
+        if (!$teamId || !$weekStart) {
+            return response()->json(['message' => 'team_id y week_start son requeridos'], 422);
+        }
+
+        $team = \App\Models\Team::find($teamId);
+        if (!$team) {
+            return response()->json(['message' => 'Equipo no encontrado'], 404);
+        }
+
+        // Validar que el usuario sea el líder del equipo (para jefe) o admin
+        if ($user->role === 'jefe' && $team->leader_id !== $user->id) {
+            return response()->json(['message' => 'No eres el líder de este equipo'], 403);
+        }
+
+        // Obtener todos los schedules del equipo para la semana
+        $schedules = Schedule::where('team_id', $teamId)
+            ->where('week_start', $weekStart)
+            ->get();
+
+        if ($schedules->isEmpty()) {
+            return response()->json(['message' => 'No hay horarios para publicar'], 404);
+        }
+
+        // Marcar como publicados
+        foreach ($schedules as $schedule) {
+            $schedule->update(['published' => true]);
+        }
+
+        return response()->json([
+            'message' => 'Horarios publicados correctamente',
+            'team_id' => $teamId,
+            'week_start' => $weekStart,
+            'schedules_published' => count($schedules)
+        ]);
     }
 
     // Visualizar total de horas trabajadas por usuario
@@ -227,5 +290,108 @@ class ScheduleController extends Controller
         }
         $total = Schedule::where('user_id', $userId)->sum('total_hours');
         return response()->json(['user_id' => $userId, 'total_hours' => $total]);
+    }
+
+    // Obtener mis propios horarios (del usuario autenticado)
+    public function mySchedules(): JsonResponse
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['message' => 'No autenticado'], 401);
+        }
+
+        $schedules = Schedule::with('user', 'shifts')
+            ->where('user_id', $user->id)
+            ->orderBy('week_start', 'desc')
+            ->get();
+
+        // Transform schedules into individual shift records with dates
+        $shifts = [];
+        foreach ($schedules as $schedule) {
+            $weekStart = new \DateTime($schedule->week_start);
+            
+            // Mapa de días de la semana a índice
+            $dayMap = [
+                'lunes' => 0,
+                'martes' => 1,
+                'miércoles' => 2,
+                'jueves' => 3,
+                'viernes' => 4,
+                'sábado' => 5,
+                'domingo' => 6,
+            ];
+            
+            foreach ($schedule->shifts as $shift) {
+                $shiftDate = clone $weekStart;
+                $dayIndex = $dayMap[strtolower($shift->day_of_week)] ?? 0;
+                $shiftDate->add(new \DateInterval('P' . $dayIndex . 'D'));
+                
+                $shifts[] = [
+                    'id' => $shift->id,
+                    'date' => $shiftDate->format('d/m/Y'),
+                    'startTime' => substr($shift->start_time, 0, 5),
+                    'endTime' => substr($shift->end_time, 0, 5),
+                    'shift' => ucfirst($shift->day_of_week),
+                    'status' => 'approved',
+                    'hours' => $shift->hours
+                ];
+            }
+        }
+
+        return response()->json($shifts);
+    }
+
+    // Obtener horarios de un usuario específico (solo para jefe/admin)
+    public function userSchedules($userId): JsonResponse
+    {
+        $authUser = Auth::user();
+        if (!$authUser) {
+            return response()->json(['message' => 'No autenticado'], 401);
+        }
+
+        // Solo administrador y jefe pueden ver horarios de otros usuarios
+        if (!in_array($authUser->role, ['administrador', 'jefe'])) {
+            return response()->json(['message' => 'No autorizado'], 403);
+        }
+
+        $schedules = Schedule::with('user', 'shifts')
+            ->where('user_id', $userId)
+            ->orderBy('week_start', 'desc')
+            ->get();
+
+        // Transform schedules into individual shift records with dates
+        $shifts = [];
+        foreach ($schedules as $schedule) {
+            $weekStart = new \DateTime($schedule->week_start);
+            
+            // Mapa de días de la semana a índice
+            $dayMap = [
+                'lunes' => 0,
+                'martes' => 1,
+                'miércoles' => 2,
+                'jueves' => 3,
+                'viernes' => 4,
+                'sábado' => 5,
+                'domingo' => 6,
+            ];
+            
+            foreach ($schedule->shifts as $shift) {
+                $shiftDate = clone $weekStart;
+                $dayIndex = $dayMap[strtolower($shift->day_of_week)] ?? 0;
+                $shiftDate->add(new \DateInterval('P' . $dayIndex . 'D'));
+                
+                $shifts[] = [
+                    'id' => $shift->id,
+                    'date' => $shiftDate->format('d/m/Y'),
+                    'startTime' => substr($shift->start_time, 0, 5),
+                    'endTime' => substr($shift->end_time, 0, 5),
+                    'shift' => ucfirst($shift->day_of_week),
+                    'status' => 'approved',
+                    'hours' => $shift->hours
+                ];
+            }
+        }
+
+        return response()->json($shifts);
     }
 }

@@ -5,7 +5,7 @@ export interface User {
   name: string;
   email: string;
   email_verified_at?: string;
-  role?: string;  // 'administrador', 'jefe', 'trabajador'
+  role: string;  // 'administrador', 'jefe', 'trabajador'
   created_at: string;
   updated_at: string;
   roles?: Role[];

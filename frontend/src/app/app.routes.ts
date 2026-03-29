@@ -55,6 +55,20 @@ export const routes: Routes = [
             data: { role: 'admin' },
             loadComponent: () => import('./features/dashboard/admin/horas-trabajadas/horas-trabajadas.component')
               .then(m => m.HorasTrabajadasComponent)
+          },
+          {
+            path: 'equipos',
+            canActivate: [RoleGuard],
+            data: { role: 'admin' },
+            loadComponent: () => import('./features/dashboard/jefe/equipos/equipos.component')
+              .then(m => m.EquiposComponent)
+          },
+          {
+            path: 'turnos',
+            canActivate: [RoleGuard],
+            data: { role: 'admin' },
+            loadComponent: () => import('./features/dashboard/admin/turnos/turnos-edit.component')
+              .then(m => m.TurnosEditComponent)
           }
         ]
       },
@@ -92,6 +106,13 @@ export const routes: Routes = [
             data: { role: 'jefe' },
             loadComponent: () => import('./features/dashboard/jefe/reporte-horas/reporte-horas.component')
               .then(m => m.ReporteHorasComponent)
+          },
+          {
+            path: 'generate-schedules',
+            canActivate: [RoleGuard],
+            data: { role: 'jefe' },
+            loadComponent: () => import('./features/dashboard/jefe/schedule-generator/schedule-generator.component')
+              .then(m => m.ScheduleGeneratorComponent)
           }
         ]
       },

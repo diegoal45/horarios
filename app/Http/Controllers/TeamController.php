@@ -17,7 +17,7 @@ class TeamController extends Controller
     {
         $teams = Team::with(['leader', 'members'])
             ->orderBy('created_at', 'desc')
-            ->paginate(10);
+            ->get();
 
         return response()->json($teams);
     }
@@ -41,10 +41,15 @@ class TeamController extends Controller
             'name' => 'required|string|max:255|unique:teams',
             'description' => 'nullable|string|max:1000',
             'leader_id' => 'required|exists:users,id',
-            'max_members' => 'integer|between:1,6|default:6'
+            'max_members' => 'nullable|integer|between:1,6'
         ]);
 
         try {
+            // Set default max_members if not provided
+            if (empty($validated['max_members'])) {
+                $validated['max_members'] = 6;
+            }
+            
             $team = Team::create($validated);
             $team->load(['leader']);
 
@@ -112,6 +117,23 @@ class TeamController extends Controller
      */
     public function addMember(Request $request, Team $team): JsonResponse
     {
+        $currentUser = auth()->user();
+        
+        if (!$currentUser) {
+            return response()->json(['message' => 'No autenticado'], 401);
+        }
+        
+        // Authorize: admins can manage any team, jefes can only manage their own teams
+        $userRole = strtolower(trim($currentUser->role));
+        $isAdmin = $userRole === 'administrador';
+        $isLeader = $currentUser->id === $team->leader_id;
+        
+        if (!$isAdmin && !$isLeader) {
+            return response()->json([
+                'message' => "No tienes permisos para agregar miembros a este equipo. Eres: {$userRole}, Líder del equipo: {$team->leader_id}, Tu ID: {$currentUser->id}"
+            ], 403);
+        }
+        
         $validated = $request->validate([
             'user_id' => 'required|exists:users,id'
         ]);
@@ -129,6 +151,17 @@ class TeamController extends Controller
             if ($team->members()->where('user_id', $user->id)->exists()) {
                 return response()->json([
                     'message' => 'El usuario ya es miembro de este equipo'
+                ], 422);
+            }
+
+            // Check if user is already in another team
+            $userTeamCount = Team::whereHas('members', function ($query) use ($user) {
+                $query->where('user_id', $user->id);
+            })->count();
+
+            if ($userTeamCount > 0) {
+                return response()->json([
+                    'message' => 'El usuario ya pertenece a otro equipo. Un usuario solo puede estar en un equipo.'
                 ], 422);
             }
 
@@ -153,6 +186,22 @@ class TeamController extends Controller
      */
     public function removeMember(Request $request, Team $team): JsonResponse
     {
+        $currentUser = auth()->user();
+        
+        if (!$currentUser) {
+            return response()->json(['message' => 'No autenticado'], 401);
+        }
+        
+        // Authorize: admins can manage any team, jefes can only manage their own teams
+        $isAdmin = strtolower($currentUser->role) === 'administrador';
+        $isLeader = $currentUser->id === $team->leader_id;
+        
+        if (!$isAdmin && !$isLeader) {
+            return response()->json([
+                'message' => 'No tienes permisos para remover miembros de este equipo'
+            ], 403);
+        }
+        
         $validated = $request->validate([
             'user_id' => 'required|exists:users,id'
         ]);
@@ -222,10 +271,47 @@ class TeamController extends Controller
     {
         $user = auth()->user();
         $teams = Team::where('leader_id', $user->id)
-            ->with(['members', 'schedules'])
+            ->with(['leader', 'members', 'schedules'])
             ->orderBy('created_at', 'desc')
             ->get();
 
         return response()->json($teams);
+    }
+
+    /**
+     * Get all schedules for a team for a specific week
+     */
+    public function getTeamSchedules($team): JsonResponse
+    {
+        // Handle both Team object and ID
+        $teamId = is_numeric($team) ? (int)$team : (is_object($team) ? $team->id : $team);
+        
+        $user = auth()->user();
+        if (!$user) {
+            return response()->json(['message' => 'No autenticado'], 401);
+        }
+
+        $team = Team::with('members')->find($teamId);
+        if (!$team) {
+            return response()->json(['message' => 'Equipo no encontrado'], 404);
+        }
+
+        // Validar que el usuario sea el líder o admin
+        if ($user->role === 'jefe' && $team->leader_id !== $user->id) {
+            return response()->json(['message' => 'No eres el líder de este equipo'], 403);
+        }
+
+        $weekStart = request('week_start');
+        if (!$weekStart) {
+            $now = now();
+            $weekStart = $now->copy()->startOfWeek()->toDateString();
+        }
+
+        $schedules = \App\Models\Schedule::where('team_id', $teamId)
+            ->where('week_start', $weekStart)
+            ->with(['user', 'shifts'])
+            ->get();
+
+        return response()->json($schedules);
     }
 }

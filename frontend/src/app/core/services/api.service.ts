@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpResponse } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { User, Schedule, Shift } from '../models';
@@ -38,6 +38,14 @@ export class ApiService {
     return this.http.get<Schedule[]>(`${this.apiUrl}/schedules`);
   }
 
+  getMySchedules(): Observable<Schedule[]> {
+    return this.http.get<Schedule[]>(`${this.apiUrl}/my-schedules`);
+  }
+
+  getUserSchedules(userId: number | string): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/users/${userId}/schedules`);
+  }
+
   getSchedule(id: number): Observable<Schedule> {
     return this.http.get<Schedule>(`${this.apiUrl}/schedules/${id}`);
   }
@@ -54,12 +62,20 @@ export class ApiService {
     return this.http.delete<void>(`${this.apiUrl}/schedules/${id}`);
   }
 
-  generateSchedules(data: any): Observable<any> {
-    return this.http.post(`${this.apiUrl}/schedules/generate`, data);
+  generateSchedules(teamId: number): Observable<any> {
+    return this.http.post(`${this.apiUrl}/schedules/generate`, { team_id: teamId });
   }
 
-  publishSchedules(id: number): Observable<any> {
-    return this.http.post(`${this.apiUrl}/schedules/${id}/publish`, {});
+  publishSchedules(teamId: number, weekStart: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/schedules/publish`, { team_id: teamId, week_start: weekStart });
+  }
+
+  getTeamSchedules(teamId: number, weekStart: string): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/teams/${teamId}/schedules?week_start=${weekStart}`);
+  }
+
+  updateSchedules(shifts: any[]): Observable<any> {
+    return this.http.post(`${this.apiUrl}/shifts/bulk-update`, { shifts });
   }
 
   // ====== SHIFTS ======
@@ -87,6 +103,49 @@ export class ApiService {
     return this.http.get<Shift[]>(`${this.apiUrl}/my-shifts`);
   }
 
+  // ====== TEAMS ======
+  getTeams(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/teams`);
+  }
+
+  getTeam(id: number): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/teams/${id}`);
+  }
+
+  getLedTeams(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/led-teams`);
+  }
+
+  getUserTeams(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/my-teams`);
+  }
+
+  createTeam(data: any): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/teams`, data);
+  }
+
+  updateTeam(id: number, data: any): Observable<any> {
+    return this.http.put<any>(`${this.apiUrl}/teams/${id}`, data);
+  }
+
+  deleteTeam(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/teams/${id}`);
+  }
+
+  getTeamMembers(teamId: number): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/teams/${teamId}/members`);
+  }
+
+  addTeamMember(teamId: number, userId: number): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/teams/${teamId}/members`, { user_id: userId });
+  }
+
+  removeTeamMember(teamId: number, userId: number): Observable<any> {
+    return this.http.delete<any>(`${this.apiUrl}/teams/${teamId}/members`, {
+      body: { user_id: userId }
+    });
+  }
+
   // ====== REPORTS ======
   exportUsers(): Observable<Blob> {
     return this.http.get(`${this.apiUrl}/reports/users`, { responseType: 'blob' });
@@ -94,6 +153,17 @@ export class ApiService {
 
   exportSchedules(): Observable<Blob> {
     return this.http.get(`${this.apiUrl}/reports/schedules`, { responseType: 'blob' });
+  }
+
+  downloadTeamSchedulesPdf(userId?: string | number): Observable<HttpResponse<Blob>> {
+    const url = userId
+      ? `${this.apiUrl}/reports/team-schedules-pdf?user_id=${encodeURIComponent(String(userId))}`
+      : `${this.apiUrl}/reports/team-schedules-pdf`;
+
+    return this.http.get(url, {
+      observe: 'response',
+      responseType: 'blob'
+    });
   }
 
   getAccessLog(): Observable<any[]> {

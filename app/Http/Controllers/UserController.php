@@ -18,12 +18,22 @@ class UserController extends Controller
         if (!$user) {
             return response()->json(['message' => 'No autenticado'], 401);
         }
-        // Permite a cualquier usuario autenticado ver la lista (si es admin ve todo, si no solo la suya)
-        if (AuthHelper::isAdmin($user)) {
+        
+        $userRole = strtolower(trim($user->role));
+        
+        // Admin: ver todos los usuarios
+        if ($userRole === 'administrador') {
             $users = User::all();
-        } else {
+        }
+        // Jefes: ver todos los usuarios (para poder agregarlos a equipos)
+        elseif ($userRole === 'jefe') {
+            $users = User::all();
+        }
+        // Otros roles: solo verse a sí mismos
+        else {
             $users = User::where('id', $user->id)->get();
         }
+        
         return response()->json($users);
     }
 

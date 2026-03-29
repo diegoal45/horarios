@@ -1,6 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { ApiService } from '../../../core/services/api.service';
 import { ToastService } from '../../../shared/services/toast.service';
 import { EmployeeListComponent } from './equipo/employee-list.component';
@@ -15,7 +17,7 @@ interface TeamStats {
 }
 
 interface Employee {
-  id: string;
+  id: string | number;
   name: string;
   role?: string;
   hours?: number;
@@ -67,10 +69,10 @@ interface TeamAction {
       <!-- Main Content -->
       <ng-container *ngIf="!loading && !error">
         <div class="flex gap-8">
-          <app-employee-list (employeeSelected)="onEmployeeSelected($event)" (employeeDeleted)="onEmployeeDeleted($event)"></app-employee-list>
+          <app-employee-list [teamEmployees]="allTeamEmployees" (employeeSelected)="onEmployeeSelected($event)" (employeeDeleted)="onEmployeeDeleted($event)"></app-employee-list>
           <section class="flex-1 flex flex-col gap-6">
             <!-- Team Actions -->
-            <div class="bg-surface-container-low rounded-xl p-6 border border-outline-variant/10 flex flex-col md:flex-row justify-between items-center gap-6">
+            <div *ngIf="teamActions.length > 0" class="bg-surface-container-low rounded-xl p-6 border border-outline-variant/10 flex flex-col md:flex-row justify-between items-center gap-6">
               <div>
                 <h2 class="text-title-md font-bold text-on-surface">Acciones de Equipo</h2>
                 <p class="text-body-sm text-secondary">Gestiona la planificación global de todos los miembros.</p>
@@ -151,6 +153,7 @@ export class JefeDashboardComponent implements OnInit {
 
   selectedEmployee: Employee | null = null;
   selectedEmployeeHours = 0;
+  allTeamEmployees: any[] = []; // Empleados con horas cargadas
 
   loading = true;
   error: string | null = null;
@@ -166,27 +169,16 @@ export class JefeDashboardComponent implements OnInit {
 
   // ========== LIFECYCLE ==========
   ngOnInit(): void {
+    console.log('[JefeDashboard] ngOnInit started');
     this.initializeActions();
     this.loadTeamStats();
+    console.log('[JefeDashboard] ngOnInit completed');
   }
 
   // ========== INITIALIZATION ==========
   private initializeActions(): void {
-    // Team Actions (Global)
-    this.teamActions = [
-      {
-        label: 'Generar Horarios',
-        icon: 'auto_schedule',
-        action: () => this.generateSchedules(),
-        isPrimary: false
-      },
-      {
-        label: 'Publicar Horarios',
-        icon: 'publish',
-        action: () => this.publishSchedules(),
-        isPrimary: true
-      }
-    ];
+    // Team Actions - vacío porque el generador está en ruta separada
+    this.teamActions = [];
 
     // Footer Actions
     this.footerActions = [
@@ -195,48 +187,135 @@ export class JefeDashboardComponent implements OnInit {
         icon: 'print',
         action: () => this.printSchedule(),
         isPrimary: false
-      },
-      {
-        label: 'Editar Horario',
-        icon: 'edit',
-        action: () => this.editSchedule(),
-        isPrimary: false
-      },
-      {
-        label: 'Descargar Reporte',
-        icon: 'download',
-        action: () => this.downloadReport(),
-        isPrimary: true
       }
     ];
   }
 
   // ========== DATA LOADING ==========
   private loadTeamStats(): void {
-    this.apiService.getUsers().subscribe({
-      next: (users: any[]) => {
-        const teamMembers = users;
+    this.loading = true;
+    
+    // Load teams led by current user
+    this.apiService.getLedTeams().subscribe({
+      next: (teamsResponse: any) => {
+        const teamsArray = Array.isArray(teamsResponse) ? teamsResponse : (teamsResponse.data || []);
+        console.log('[JefeDashboard] Teams loaded:', teamsArray.length);
         
-        this.teamStats = {
-          totalMembers: teamMembers.length,
-          averageHours: this.calculateAverageHours(teamMembers),
-          totalHours: this.calculateTotalHours(teamMembers),
-          completionPercentage: this.calculateCompletionPercentage(teamMembers)
-        };
+        if (teamsArray.length === 0) {
+          this.teamStats = {
+            totalMembers: 0,
+            averageHours: 0,
+            totalHours: 0,
+            completionPercentage: 0
+          };
+          this.updateKPICards();
+          this.loading = false;
+          return;
+        }
 
-        this.updateKPICards();
-        this.loading = false;
+        // Get current week start
+        const today = new Date();
+        const weekStart = this.getWeekStart(today);
+        const weekStartStr = weekStart.toISOString().split('T')[0];
+
+        // Build observable for each team's schedules
+        const scheduleObservables: { [key: number]: any } = {};
+        
+        teamsArray.forEach((team: any) => {
+          scheduleObservables[team.id] = this.apiService.getTeamSchedules(team.id, weekStartStr).pipe(
+            catchError(err => {
+              console.error('[JefeDashboard] Error loading schedules for team:', team.id, err);
+              return of([]);
+            })
+          );
+        });
+
+        // Use forkJoin to wait for all team schedules to load
+        forkJoin(scheduleObservables).subscribe({
+          next: (allSchedules: any) => {
+            console.log('[JefeDashboard] All schedules loaded');
+            
+            // Calculate totals from all teams
+            let totalMembers = 0;
+            let totalHours = 0;
+            let memberCount = 0;
+            const allMembers: any[] = [];
+            const memberHoursMap: { [key: number]: number } = {};
+
+            teamsArray.forEach((team: any) => {
+              const schedules = allSchedules[team.id] || [];
+              totalMembers += team.members?.length || 0;
+              
+              // Build list of all members with their hours
+              team.members?.forEach((member: any) => {
+                const memberSchedules = schedules.filter((s: any) => s.user_id === member.id);
+                const memberTotalHours = memberSchedules.reduce((sum: number, s: any) => sum + (s.total_hours || 0), 0);
+                
+                allMembers.push({
+                  id: member.id,
+                  name: member.name,
+                  email: member.email,
+                  role: member.role || 'trabajador',
+                  weeklyHours: memberTotalHours
+                });
+                
+                memberHoursMap[member.id] = memberTotalHours;
+                totalHours += memberTotalHours;
+                memberCount++;
+              });
+            });
+
+            const averageHours = memberCount > 0 ? Math.round((totalHours / memberCount) * 10) / 10 : 0;
+
+            this.teamStats = {
+              totalMembers: totalMembers,
+              averageHours: averageHours,
+              totalHours: Math.round(totalHours * 10) / 10,
+              completionPercentage: totalMembers > 0 ? 100 : 0
+            };
+
+            // Guardar empleados con horas para pasar al employee-list
+            this.allTeamEmployees = allMembers;
+            console.log('[JefeDashboard] All team employees with hours:', this.allTeamEmployees);
+
+            // Pre-seleccionar el primer usuario del equipo
+            if (allMembers.length > 0) {
+              this.selectedEmployee = allMembers[0];
+              this.selectedEmployeeHours = allMembers[0].weeklyHours;
+              console.log('[JefeDashboard] Pre-selected first employee:', this.selectedEmployee?.name, 'hours:', this.selectedEmployeeHours);
+            }
+
+            console.log('[JefeDashboard] Team stats:', this.teamStats);
+            console.log('[JefeDashboard] All members:', allMembers);
+            this.updateKPICards();
+            this.loading = false;
+          },
+          error: (err) => {
+            console.error('[JefeDashboard] Error in forkJoin:', err);
+            this.error = 'Error cargando datos de horarios';
+            this.loading = false;
+            this.toastService.error(this.error);
+          }
+        });
       },
       error: (err) => {
-        console.error('Error loading team stats:', err);
-        this.error = 'Error cargando estadísticas del equipo';
+        console.error('[JefeDashboard] Error loading teams:', err);
+        this.error = 'Error cargando equipos';
         this.loading = false;
         this.toastService.error(this.error);
       }
     });
   }
 
+  private getWeekStart(date: Date): Date {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    return new Date(d.setDate(diff));
+  }
+
   private updateKPICards(): void {
+    console.log('[JefeDashboard] updateKPICards called - teamStats:', this.teamStats, 'selectedEmployeeHours:', this.selectedEmployeeHours, 'selectedEmployee:', this.selectedEmployee?.name);
     this.kpiCards = [
       {
         title: 'Horas Totales Equipo',
@@ -254,6 +333,7 @@ export class JefeDashboardComponent implements OnInit {
         maxValue: 44
       }
     ];
+    console.log('[JefeDashboard] kpiCards updated:', this.kpiCards);
   }
 
   // ========== CALCULATIONS ==========
@@ -280,8 +360,10 @@ export class JefeDashboardComponent implements OnInit {
 
   // ========== EVENT HANDLERS - EMPLOYEE ==========
   onEmployeeSelected(employee: Employee): void {
+    console.log('[JefeDashboard] onEmployeeSelected:', employee);
     this.selectedEmployee = employee;
     this.selectedEmployeeHours = employee.weeklyHours || 0;
+    console.log('[JefeDashboard] After selection - selectedEmployeeHours:', this.selectedEmployeeHours);
     this.updateKPICards();
   }
 
@@ -290,28 +372,79 @@ export class JefeDashboardComponent implements OnInit {
     this.loadTeamStats();
   }
 
-  // ========== EVENT HANDLERS - TEAM ACTIONS ==========
-  generateSchedules(): void {
-    this.toastService.success('Horarios generados automáticamente');
-    // Implementar lógica de generación
-  }
-
-  publishSchedules(): void {
-    this.toastService.success('Horarios publicados para el equipo');
-    // Implementar lógica de publicación
-  }
-
   // ========== EVENT HANDLERS - FOOTER ==========
   printSchedule(): void {
-    this.toastService.info('Función de impresión en desarrollo');
-  }
-
-  editSchedule(): void {
-    this.toastService.info('Función de edición en desarrollo');
+    window.print();
   }
 
   downloadReport(): void {
-    this.toastService.success('Reporte descargado');
+    console.log('[JefeDashboard] downloadReport called');
+    console.log('[JefeDashboard] Starting PDF download...');
+
+    if (!this.selectedEmployee?.id) {
+      this.toastService.error('Selecciona un trabajador para descargar su horario.');
+      return;
+    }
+
+    this.toastService.info('Generando reporte...');
+    
+    this.apiService.downloadTeamSchedulesPdf(this.selectedEmployee.id).subscribe({
+      next: (response) => {
+        const pdfBlob = response.body;
+        if (!pdfBlob || pdfBlob.size === 0) {
+          this.toastService.error('El PDF se generó vacío. Verifica que existan horarios cargados.');
+          return;
+        }
+
+        const filename = this.extractFilenameFromDisposition(response.headers.get('content-disposition'))
+          || `horarios_${new Date().toISOString().slice(0, 10)}.pdf`;
+
+        const url = window.URL.createObjectURL(pdfBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+
+        this.toastService.success('Reporte descargado exitosamente');
+      },
+      error: (err) => {
+        console.error('[JefeDashboard] Error downloading report:', err);
+        console.error('[JefeDashboard] Error status:', err?.status);
+        console.error('[JefeDashboard] Error message:', err?.message);
+        console.error('[JefeDashboard] Full error:', err);
+        
+        if (err?.status === 401) {
+          this.toastService.error('No autorizado. Por favor inicia sesión nuevamente');
+        } else {
+          this.toastService.error('Error al descargar reporte: ' + (err?.message || 'Error desconocido'));
+        }
+      }
+    });
+  }
+
+  private extractFilenameFromDisposition(contentDisposition: string | null): string | null {
+    if (!contentDisposition) {
+      return null;
+    }
+
+    const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+    if (utf8Match?.[1]) {
+      return decodeURIComponent(utf8Match[1]).replace(/['"]/g, '').trim();
+    }
+
+    const basicMatch = contentDisposition.match(/filename=([^;]+)/i);
+    if (basicMatch?.[1]) {
+      return basicMatch[1].replace(/['"]/g, '').trim();
+    }
+
+    return null;
+  }
+
+  private openPrintFallback(): void {
+    window.print();
   }
 
   // ========== UTILITIES ==========

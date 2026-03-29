@@ -159,7 +159,7 @@ export class MisHorariosComponent implements OnInit {
   }
 
   private loadSchedules(): void {
-    this.apiService.getSchedules().subscribe({
+    this.apiService.getMySchedules().subscribe({
       next: (schedules: any[]) => {
         this.schedules = schedules;
         this.loading = false;

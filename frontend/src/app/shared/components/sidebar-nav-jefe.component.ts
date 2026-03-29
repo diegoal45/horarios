@@ -153,8 +153,7 @@ export class SidebarNavJefeComponent implements OnInit {
   isMobileExpanded = signal(false);
   navItems = signal<NavItem[]>([
     { icon: 'home', label: 'Inicio', route: '/dashboard/jefe', isActive: true },
-    { icon: 'group', label: 'Mi Equipo', route: '/dashboard/jefe/team', isActive: false },
-    { icon: 'calendar_today', label: 'Mis Horarios', route: '/dashboard/jefe/schedules', isActive: false },
+    { icon: 'auto_awesome', label: 'Generar Horarios', route: '/dashboard/jefe/generate-schedules', isActive: false },
     { icon: 'assessment', label: 'Reportes', route: '/dashboard/jefe/reports', isActive: false }
   ]);
 

@@ -21,8 +21,14 @@ class CheckRole
             return response()->json(['message' => 'No autenticado'], 401);
         }
 
-        // Normalizar la comparación
-        if (strtolower($user->role) !== strtolower($role)) {
+        // Parse multiple roles separated by comma (e.g., "jefe,administrador")
+        $allowedRoles = array_map('trim', explode(',', $role));
+        $userRole = strtolower($user->role);
+
+        // Check if user role is in the allowed roles
+        $isAllowed = in_array($userRole, array_map('strtolower', $allowedRoles));
+
+        if (!$isAllowed) {
             return response()->json(['message' => 'No autorizado. Se requiere rol: ' . $role], 403);
         }
 

@@ -1,0 +1,23 @@
+GET http://localhost:8000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "jefe@example.com",
+  "password": "password"
+}
+
+###
+
+POST http://localhost:8000/api/schedules/generate
+Content-Type: application/json
+Authorization: Bearer TOKEN_HERE
+
+{
+  "team_id": 1
+}
+
+###
+
+GET http://localhost:8000/api/teams/1/schedules?week_start=2026-03-30
+Content-Type: application/json
+Authorization: Bearer TOKEN_HERE

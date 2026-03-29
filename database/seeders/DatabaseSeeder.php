@@ -3,11 +3,8 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-use App\Models\Schedule;
-use App\Models\Shift;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use Carbon\Carbon;
 
 class DatabaseSeeder extends Seeder
 {
@@ -18,11 +15,12 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // Step 1: Create roles
         $this->call([
             RolesTableSeeder::class,
         ]);
 
-        // Create demo users with their roles
+        // Step 2: Create demo users with their roles
         $users = [];
 
         $users[] = User::create([
@@ -88,32 +86,49 @@ class DatabaseSeeder extends Seeder
             'role' => 'trabajador',
         ]);
 
-        // Create schedules and shifts for demo
-        foreach ($users as $user) {
-            for ($i = 0; $i < 3; $i++) {
-                $date = Carbon::now()->addDays($i);
-                $schedule = Schedule::create([
-                    'user_id' => $user->id,
-                    'week_start' => $date->toDateString(),
-                    'total_hours' => 8,
-                ]);
+        $users[] = User::create([
+            'name' => 'Diego Morales',
+            'email' => 'diego@example.com',
+            'password' => bcrypt('password'),
+            'role' => 'trabajador',
+        ]);
 
-                // Create shifts for this schedule
-                Shift::create([
-                    'schedule_id' => $schedule->id,
-                    'start_time' => $date->copy()->setHour(8)->setMinutes(0),
-                    'end_time' => $date->copy()->setHour(12)->setMinutes(0),
-                ]);
+        $users[] = User::create([
+            'name' => 'Martina López',
+            'email' => 'martina@example.com',
+            'password' => bcrypt('password'),
+            'role' => 'trabajador',
+        ]);
 
-                Shift::create([
-                    'schedule_id' => $schedule->id,
-                    'start_time' => $date->copy()->setHour(13)->setMinutes(0),
-                    'end_time' => $date->copy()->setHour(17)->setMinutes(0),
-                ]);
-            }
-        }
+        $users[] = User::create([
+            'name' => 'Andrés García',
+            'email' => 'andres@example.com',
+            'password' => bcrypt('password'),
+            'role' => 'trabajador',
+        ]);
 
-        // Call TeamsTableSeeder after all users are created
+        $users[] = User::create([
+            'name' => 'Catalina Sánchez',
+            'email' => 'catalina@example.com',
+            'password' => bcrypt('password'),
+            'role' => 'trabajador',
+        ]);
+
+        $users[] = User::create([
+            'name' => 'Gustavo Pérez',
+            'email' => 'gustavo@example.com',
+            'password' => bcrypt('password'),
+            'role' => 'trabajador',
+        ]);
+
+        $users[] = User::create([
+            'name' => 'Valentina Rodríguez',
+            'email' => 'valentina@example.com',
+            'password' => bcrypt('password'),
+            'role' => 'trabajador',
+        ]);
+
+        // Step 3: Create teams and assign members after all users are created
         $this->call([
             TeamsTableSeeder::class,
         ]);

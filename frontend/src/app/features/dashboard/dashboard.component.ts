@@ -52,12 +52,30 @@ export class DashboardComponent implements OnInit {
     console.log('✅ [Dashboard] Constructor iniciado');
     this.userRole$ = this.authService.user$.pipe(
       map(user => {
-        let role = user?.role ? user.role.toLowerCase().trim() : 'admin';
+        console.log('%c🔍 [Dashboard] userRole$ map - usuario recibido:', 'color: #FF6B6B; font-weight: bold', {
+          email: user?.email,
+          name: user?.name,
+          role: user?.role,
+          allData: user
+        });
+        
+        let role = user?.role ? user.role.toLowerCase().trim() : 'trabajador'; // Cambiar a 'trabajador' por defecto
+        
         // Mapear variaciones de roles
         if (role === 'jefe' || role === 'jefen' || role === 'chief') {
           role = 'jefe';
+        } else if (role === 'administrador' || role === 'admin') {
+          role = 'administrador';
+        } else {
+          role = 'trabajador';
         }
-        console.log('🔍 [Dashboard] userRole$ → role:', role, 'user:', user?.name, 'original:', user?.role);
+        
+        console.log('%c✅ [Dashboard] userRole$ → role final:', 'color: #4ECDC4; font-weight: bold', {
+          roleFinal: role,
+          userEmail: user?.name,
+          originalRole: user?.role
+        });
+        
         return role;
       })
     );

@@ -60,7 +60,7 @@ class TeamsTableSeeder extends Seeder
         $workers = User::where('role', 'trabajador')->get();
 
         // Assign workers to teams (max 6 each)
-        $workersPerTeam = 3; // 3 per team for demo
+        $workersPerTeam = 6; // 6 per team for schedule generation
         $workerIndex = 0;
 
         foreach ($workers->slice(0, $workersPerTeam) as $worker) {

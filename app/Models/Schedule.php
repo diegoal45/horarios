@@ -19,6 +19,7 @@ class Schedule extends Model
         'team_id',
         'week_start',
         'total_hours',
+        'published',
     ];
 
     /**
