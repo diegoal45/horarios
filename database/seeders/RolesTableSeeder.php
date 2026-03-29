@@ -14,7 +14,7 @@ class RolesTableSeeder extends Seeder
     public function run(): void
     {
         $now = Carbon::now();
-        DB::table('roles')->insert([
+        DB::table('roles')->insertOrIgnore([
             ['name' => 'administrador', 'created_at' => $now, 'updated_at' => $now],
             ['name' => 'jefe', 'created_at' => $now, 'updated_at' => $now],
             ['name' => 'trabajador', 'created_at' => $now, 'updated_at' => $now],

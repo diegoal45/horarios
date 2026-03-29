@@ -16,9 +16,47 @@ class AuthHelper
         if (!$user) {
             return [false, response()->json(['message' => 'No autenticado'], 401)];
         }
-        if (!in_array($user->role, $roles)) {
-            return [false, response()->json(['message' => 'No autorizado'], 403)];
+        
+        $userRole = strtolower($user->role);
+        $normalizedRoles = array_map('strtolower', $roles);
+        
+        if (!in_array($userRole, $normalizedRoles)) {
+            return [false, response()->json(['message' => 'No autorizado. Roles requeridos: ' . implode(', ', $roles)], 403)];
         }
         return [true, null];
+    }
+
+    /**
+     * Verifica si el usuario es administrador (case-insensitive)
+     */
+    public static function isAdmin($user): bool
+    {
+        if (!$user) {
+            return false;
+        }
+        return strtolower($user->role ?? '') === 'administrador';
+    }
+
+    /**
+     * Verifica si el usuario tiene un rol específico (case-insensitive)
+     */
+    public static function hasRole($user, string $role): bool
+    {
+        if (!$user) {
+            return false;
+        }
+        return strtolower($user->role ?? '') === strtolower($role);
+    }
+
+    /**
+     * Verifica si el usuario puede gestionar otros usuarios
+     */
+    public static function canManageUsers($user): bool
+    {
+        if (!$user) {
+            return false;
+        }
+        $role = strtolower($user->role ?? '');
+        return $role === 'administrador' || $role === 'jefe';
     }
 }

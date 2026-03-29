@@ -174,3 +174,92 @@ GET http://localhost:8000/api/my-shifts
 Accept: application/json
 Authorization: Bearer {{token}}
 
+###
+
+# TEAMS - Gestión de Equipos (Máximo 6 miembros)
+
+### Listar todos los equipos
+GET http://localhost:8000/api/teams
+Accept: application/json
+Authorization: Bearer {{token}}
+
+###
+### Ver detalles de un equipo
+GET http://localhost:8000/api/teams/1
+Accept: application/json
+Authorization: Bearer {{token}}
+
+###
+### Crear nuevo equipo (Solo Jefes y Admins)
+POST http://localhost:8000/api/teams
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "Equipo Desarrollo",
+  "description": "Equipo de desarrollo backend",
+  "leader_id": 2,
+  "max_members": 6
+}
+
+###
+### Actualizar equipo (Solo Jefes y Admins)
+PUT http://localhost:8000/api/teams/1
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "Equipo Desarrollo Actualizado",
+  "description": "Equipo actualizado",
+  "is_active": true
+}
+
+###
+### Eliminar equipo (Solo Jefes y Admins)
+DELETE http://localhost:8000/api/teams/1
+Accept: application/json
+Authorization: Bearer {{token}}
+
+###
+### Obtener miembros de un equipo
+GET http://localhost:8000/api/teams/1/members
+Accept: application/json
+Authorization: Bearer {{token}}
+
+###
+### Agregar miembro a equipo (Solo Jefes y Admins)
+### Máximo 6 miembros por equipo
+POST http://localhost:8000/api/teams/1/members
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {{token}}
+
+{
+  "user_id": 5
+}
+
+###
+### Remover miembro del equipo (Solo Jefes y Admins)
+DELETE http://localhost:8000/api/teams/1/members
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {{token}}
+
+{
+  "user_id": 5
+}
+
+###
+### Obtener equipos del usuario actual
+GET http://localhost:8000/api/my-teams
+Accept: application/json
+Authorization: Bearer {{token}}
+
+###
+### Obtener equipos liderados por el usuario actual (Solo Jefes)
+GET http://localhost:8000/api/led-teams
+Accept: application/json
+Authorization: Bearer {{token}}
+

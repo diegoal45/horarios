@@ -21,6 +21,18 @@ export class ApiService {
     return this.http.get<User>(`${this.apiUrl}/users/${id}`);
   }
 
+  createUser(data: any): Observable<User> {
+    return this.http.post<User>(`${this.apiUrl}/users`, data);
+  }
+
+  updateUser(id: number, data: any): Observable<User> {
+    return this.http.put<User>(`${this.apiUrl}/users/${id}`, data);
+  }
+
+  deleteUser(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/users/${id}`);
+  }
+
   // ====== SCHEDULES ======
   getSchedules(): Observable<Schedule[]> {
     return this.http.get<Schedule[]>(`${this.apiUrl}/schedules`);
@@ -42,6 +54,14 @@ export class ApiService {
     return this.http.delete<void>(`${this.apiUrl}/schedules/${id}`);
   }
 
+  generateSchedules(data: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}/schedules/generate`, data);
+  }
+
+  publishSchedules(id: number): Observable<any> {
+    return this.http.post(`${this.apiUrl}/schedules/${id}/publish`, {});
+  }
+
   // ====== SHIFTS ======
   getShifts(): Observable<Shift[]> {
     return this.http.get<Shift[]>(`${this.apiUrl}/shifts`);
@@ -61,5 +81,22 @@ export class ApiService {
 
   deleteShift(id: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/shifts/${id}`);
+  }
+
+  getMyShifts(): Observable<Shift[]> {
+    return this.http.get<Shift[]>(`${this.apiUrl}/my-shifts`);
+  }
+
+  // ====== REPORTS ======
+  exportUsers(): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/reports/users`, { responseType: 'blob' });
+  }
+
+  exportSchedules(): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/reports/schedules`, { responseType: 'blob' });
+  }
+
+  getAccessLog(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/reports/access-log`);
   }
 }

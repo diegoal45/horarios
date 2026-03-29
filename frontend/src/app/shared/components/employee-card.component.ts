@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 export interface Employee {
@@ -42,11 +42,7 @@ export interface Employee {
       </div>
 
       <!-- Stats Grid -->
-      <div class="grid grid-cols-2 gap-4 py-4 border-t border-slate-200">
-        <div>
-          <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Productividad</p>
-          <p class="text-sm font-bold text-slate-700">{{ employee.productivity }}%</p>
-        </div>
+      <div class="grid grid-cols-1 gap-4 py-4 border-t border-slate-200">
         <div>
           <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Antigüedad</p>
           <p class="text-sm font-bold text-slate-700">{{ employee.seniority }}</p>
@@ -55,9 +51,11 @@ export interface Employee {
 
       <!-- Action Button -->
       <button
-        class="w-full mt-2 py-2 text-xs font-semibold text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors"
+        (click)="onViewSchedule()"
+        class="w-full mt-2 py-2 text-xs font-semibold text-slate-500 hover:text-teal-600 hover:bg-teal-50 rounded transition-colors flex items-center justify-center gap-2"
       >
-        Ver Perfil Detallado
+        <span class="material-symbols-outlined text-sm">calendar_today</span>
+        Ver Horario
       </button>
     </div>
   `,
@@ -65,6 +63,7 @@ export interface Employee {
 })
 export class EmployeeCardComponent {
   @Input() employee!: Employee;
+  @Output() viewSchedule = new EventEmitter<Employee>();
 
   getStatusStyles(): string {
     switch (this.employee.status) {
@@ -77,5 +76,9 @@ export class EmployeeCardComponent {
       default:
         return 'bg-slate-50 text-slate-600';
     }
+  }
+
+  onViewSchedule(): void {
+    this.viewSchedule.emit(this.employee);
   }
 }

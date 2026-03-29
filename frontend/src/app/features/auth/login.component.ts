@@ -4,12 +4,11 @@ import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angula
 import { RouterModule, Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { ToastService } from '../../shared/services/toast.service';
-import { HeaderComponent, FooterComponent } from '../../shared/components';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule, HeaderComponent, FooterComponent],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule],
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.css']
 })
@@ -60,7 +59,24 @@ export class LoginComponent implements OnInit {
     this.authService.login(credentials).subscribe({
       next: (response) => {
         this.toastService.success('¡Bienvenido de vuelta!');
-        setTimeout(() => this.router.navigate(['/dashboard/admin/dashboard']), 500);
+        
+        // Get current user and redirect based on role
+        this.authService.getCurrentUser().subscribe({
+          next: (user) => {
+            const role = user?.role?.toLowerCase();
+            let redirectPath = '/dashboard';
+            
+            if (role === 'administrador') {
+              redirectPath = '/dashboard/admin';
+            } else if (role === 'jefe') {
+              redirectPath = '/dashboard/jefe';
+            } else if (role === 'trabajador') {
+              redirectPath = '/dashboard/trabajador';
+            }
+            
+            setTimeout(() => this.router.navigate([redirectPath]), 500);
+          }
+        });
       },
       error: (err) => {
         this.loading = false;

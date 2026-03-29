@@ -56,6 +56,12 @@ class User extends Authenticatable
         return $this->belongsToMany(Role::class, 'role_user');
     }
 
+    public function teams()
+    {
+        return $this->belongsToMany(Team::class, 'team_user')
+            ->withTimestamps();
+    }
+
     public function schedules()
     {
         return $this->hasMany(Schedule::class);

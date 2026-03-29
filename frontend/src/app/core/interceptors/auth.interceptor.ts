@@ -1,53 +1,51 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import {
-  HttpInterceptor,
+  HttpInterceptorFn,
   HttpRequest,
-  HttpHandler,
-  HttpEvent,
   HttpErrorResponse
 } from '@angular/common/http';
-import { Observable, throwError } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { catchError, throwError } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 import { Router } from '@angular/router';
 
-@Injectable()
-export class AuthInterceptor implements HttpInterceptor {
-  constructor(private authService: AuthService, private router: Router) {}
+export const authInterceptor: HttpInterceptorFn = (req, next) => {
+  const authService = inject(AuthService);
+  const router = inject(Router);
 
-  intercept(
-    request: HttpRequest<any>,
-    next: HttpHandler
-  ): Observable<HttpEvent<any>> {
-    const token = this.authService.getToken();
+  const token = authService.getToken();
+  
+  console.log('[AuthInterceptor] URL:', req.url);
+  console.log('[AuthInterceptor] Token:', token ? 'existe' : 'NO EXISTE');
 
-    // Añadir token Bearer a todas las peticiones si existe
-    if (token) {
-      request = request.clone({
-        setHeaders: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-    }
-
-    return next.handle(request).pipe(
-      catchError((error: HttpErrorResponse) => {
-        // Si el token expiró (401) o no autorizado, limpiar sesión
-        if (error.status === 401) {
-          // Limpiar token y redirigir a login solo si NO estamos ya en una página de auth
-          localStorage.removeItem('auth_token');
-          
-          // Obtener la URL actual del router
-          const currentUrl = this.router.url;
-          
-          // Solo redirigir si NO estamos en login, register o forgot-password
-          // Así permitimos que el componente maneje el error 401
-          if (!currentUrl.includes('/login') && !currentUrl.includes('/register') && !currentUrl.includes('/forgot-password')) {
-            this.router.navigate(['/login']);
-          }
-        }
-        return throwError(() => error);
-      })
-    );
+  let request = req;
+  
+  // Añadir token Bearer a todas las peticiones si existe
+  if (token) {
+    request = req.clone({
+      setHeaders: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+    console.log('[AuthInterceptor] Header agregado:', request.headers.get('Authorization'));
   }
-}
+
+  return next(request).pipe(
+    catchError((error: HttpErrorResponse) => {
+      console.error('[AuthInterceptor] Error:', error.status, error.message);
+      
+      // Si el token expiró (401) o no autorizado
+      if (error.status === 401) {
+        localStorage.removeItem('auth_token');
+        
+        const currentUrl = router.url;
+        
+        // Solo redirigir si NO estamos en login, register o forgot-password
+        if (!currentUrl.includes('/login') && !currentUrl.includes('/register') && !currentUrl.includes('/forgot-password')) {
+          router.navigate(['/login']);
+        }
+      }
+      
+      return throwError(() => error);
+    })
+  );
+};

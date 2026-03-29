@@ -1,0 +1,69 @@
+/* Jefe Dashboard Styles */
+
+:host {
+  display: block;
+  height: 100%;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Glass Card Effect */
+.glass-card {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Grid Row Height for Calendar */
+.grid-row-h {
+  height: 3.5rem;
+}
+
+/* Hide Scrollbar */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Employee List Styling */
+.employee-item {
+  transition: all 0.2s ease-in-out;
+}
+
+.employee-item:hover {
+  background-color: var(--surface-container-high, #e8e8ea);
+}
+
+.employee-item.active {
+  background-color: var(--surface-container-lowest, #ffffff);
+  border-left: 4px solid var(--primary, #006856);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* Schedule Calendar Grid Background */
+.calendar-grid-background {
+  position: relative;
+}
+
+/* KPI Card Styling */
+.kpi-card {
+  transition: box-shadow 0.2s ease-in-out;
+}
+
+.kpi-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
