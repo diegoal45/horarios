@@ -166,6 +166,15 @@ export class ApiService {
     });
   }
 
+  downloadTeamSchedulesByTeamPdf(teamId: string | number): Observable<HttpResponse<Blob>> {
+    const url = `${this.apiUrl}/reports/team-schedules-pdf?team_id=${encodeURIComponent(String(teamId))}`;
+
+    return this.http.get(url, {
+      observe: 'response',
+      responseType: 'blob'
+    });
+  }
+
   getAccessLog(): Observable<any[]> {
     return this.http.get<any[]>(`${this.apiUrl}/reports/access-log`);
   }

@@ -12,8 +12,6 @@ class CorsMiddleware
      */
     public function handle(Request $request, Closure $next)
     {
-        $response = $next($request);
-
         // Definir los orígenes permitidos
         $allowedOrigins = [
             'http://localhost:4200',
@@ -23,18 +21,29 @@ class CorsMiddleware
 
         $origin = $request->header('Origin');
 
-        if (in_array($origin, $allowedOrigins)) {
-            $response->header('Access-Control-Allow-Origin', $origin);
-            $response->header('Access-Control-Allow-Credentials', 'true');
-            $response->header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-            $response->header('Access-Control-Allow-Headers', 'Origin, Content-Type, Accept, Authorization, X-Requested-With');
-            $response->header('Access-Control-Expose-Headers', 'Content-Length, X-JSON-Response-Code');
-            $response->header('Access-Control-Max-Age', '86400');
+        // Manejar preflight requests (OPTIONS) antes del pipeline normal.
+        if ($request->isMethod('OPTIONS')) {
+            $preflight = response()->json([], 200);
+            if (in_array($origin, $allowedOrigins, true)) {
+                $preflight->headers->set('Access-Control-Allow-Origin', $origin);
+                $preflight->headers->set('Access-Control-Allow-Credentials', 'true');
+                $preflight->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+                $preflight->headers->set('Access-Control-Allow-Headers', 'Origin, Content-Type, Accept, Authorization, X-Requested-With');
+                $preflight->headers->set('Access-Control-Expose-Headers', 'Content-Length, Content-Disposition, X-JSON-Response-Code');
+                $preflight->headers->set('Access-Control-Max-Age', '86400');
+            }
+            return $preflight;
         }
 
-        // Manejar preflight requests (OPTIONS)
-        if ($request->isMethod('OPTIONS')) {
-            return response()->json([], 200);
+        $response = $next($request);
+
+        if (in_array($origin, $allowedOrigins, true)) {
+            $response->headers->set('Access-Control-Allow-Origin', $origin);
+            $response->headers->set('Access-Control-Allow-Credentials', 'true');
+            $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+            $response->headers->set('Access-Control-Allow-Headers', 'Origin, Content-Type, Accept, Authorization, X-Requested-With');
+            $response->headers->set('Access-Control-Expose-Headers', 'Content-Length, Content-Disposition, X-JSON-Response-Code');
+            $response->headers->set('Access-Control-Max-Age', '86400');
         }
 
         return $response;

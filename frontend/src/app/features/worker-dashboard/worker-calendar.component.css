@@ -1,0 +1,11 @@
+/* worker-calendar.component.css */
+.glass-card {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.grid-row-h {
+  height: 3.5rem;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

@@ -84,6 +84,9 @@ interface Leader {
               <p class="text-body-sm text-secondary">{{ team.description }}</p>
             </div>
             <div class="flex gap-2">
+              <button (click)="downloadTeamSchedule(team)" class="p-2 hover:bg-primary/10 text-primary rounded-full transition-all" title="Descargar horario del equipo">
+                <span class="material-symbols-outlined text-lg">download</span>
+              </button>
               <button *ngIf="currentUserRole === 'administrador'" (click)="editTeam(team)" class="p-2 hover:bg-primary/10 text-primary rounded-full transition-all" title="Editar">
                 <span class="material-symbols-outlined text-lg">edit</span>
               </button>
@@ -499,5 +502,39 @@ export class EquiposComponent implements OnInit {
     this.showAddMemberModal = false;
     this.selectedTeamForMember = null;
     this.availableUsers = [];
+  }
+
+  downloadTeamSchedule(team: Team): void {
+    if (!team?.id) {
+      this.toastService.error('No se pudo identificar el equipo para descargar su horario');
+      return;
+    }
+
+    this.apiService.downloadTeamSchedulesByTeamPdf(team.id).subscribe({
+      next: (response) => {
+        const pdfBlob = response.body;
+        if (!pdfBlob || pdfBlob.size === 0) {
+          this.toastService.error('El PDF del equipo se generó vacío');
+          return;
+        }
+
+        const contentDisposition = response.headers.get('content-disposition') || '';
+        const filename = contentDisposition.match(/filename="?([^\";]+)"?/)?.[1]
+          || `horarios_equipo_${team.id}_${new Date().toISOString().slice(0, 10)}.pdf`;
+
+        const url = window.URL.createObjectURL(pdfBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        link.click();
+        window.URL.revokeObjectURL(url);
+
+        this.toastService.success(`Horario de ${team.name} descargado`);
+      },
+      error: (err) => {
+        console.error('[Equipos] Error downloading team schedule:', err);
+        this.toastService.error('Error al descargar el horario del equipo');
+      }
+    });
   }
 }

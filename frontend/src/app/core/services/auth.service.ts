@@ -14,6 +14,14 @@ interface RegisterResponse {
   user: User;
 }
 
+interface UpdateProfilePayload {
+  name: string;
+  email: string;
+  current_password?: string;
+  password?: string;
+  password_confirmation?: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -109,6 +117,16 @@ export class AuthService {
           user: user.email,
           role: user.role
         });
+      })
+    );
+  }
+
+  updateProfile(payload: UpdateProfilePayload): Observable<any> {
+    return this.http.put<any>(`${this.apiUrl}/user/profile`, payload).pipe(
+      tap((response) => {
+        const updatedUser: User = response?.user ?? response;
+        this.userSubject.next(updatedUser);
+        localStorage.setItem(this.userKey, JSON.stringify(updatedUser));
       })
     );
   }

@@ -117,6 +117,21 @@ export const routes: Routes = [
         ]
       },
 
+        // TRABAJADOR ROUTES
+        {
+          path: 'trabajador',
+          canActivate: [RoleGuard],
+          data: { role: 'trabajador' },
+          loadComponent: () => import('./features/worker-dashboard/worker-dashboard.component')
+            .then(m => m.WorkerDashboardComponent)
+        },
+        {
+          path: 'perfil/editar',
+          canActivate: [authGuard],
+          loadComponent: () => import('./features/profile/edit-profile.component')
+            .then(m => m.EditProfileComponent)
+        },
+
       // Default redirect
       {
         path: '',

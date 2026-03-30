@@ -15,9 +15,11 @@ Route::prefix('auth')->group(function () {
     Route::middleware('auth:sanctum')->post('logout', [AuthController::class, 'logout']);
 });
 
-// Debug routes
-Route::get('/debug/check-data', [DebugController::class, 'checkData']);
-Route::get('/debug/fix-team-members', [DebugController::class, 'fixTeamMembers']);
+// Debug routes only for non-production environments
+if (config('app.debug')) {
+    Route::get('/debug/check-data', [DebugController::class, 'checkData']);
+    Route::get('/debug/fix-team-members', [DebugController::class, 'fixTeamMembers']);
+}
 
 
 
@@ -43,6 +45,58 @@ Route::middleware('auth:sanctum')->group(function () {
             'email_verified_at' => $user->email_verified_at,
             'created_at' => $user->created_at,
             'updated_at' => $user->updated_at,
+        ]);
+    });
+
+    Route::put('user/profile', function (\Illuminate\Http\Request $request) {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => [
+                'required',
+                'email',
+                'max:255',
+                \Illuminate\Validation\Rule::unique('users', 'email')->ignore($user->id),
+            ],
+            'current_password' => ['nullable', 'string'],
+            'password' => ['nullable', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        if (!empty($validated['password'])) {
+            if (empty($validated['current_password'])) {
+                return response()->json([
+                    'message' => 'Debes ingresar tu contraseña actual para cambiar la contraseña.',
+                ], 422);
+            }
+
+            if (!\Illuminate\Support\Facades\Hash::check($validated['current_password'], $user->password)) {
+                return response()->json([
+                    'message' => 'La contraseña actual no es correcta.',
+                ], 422);
+            }
+        }
+
+        $user->name = $validated['name'];
+        $user->email = $validated['email'];
+
+        if (!empty($validated['password'])) {
+            $user->password = \Illuminate\Support\Facades\Hash::make($validated['password']);
+        }
+
+        $user->save();
+
+        return response()->json([
+            'message' => 'Perfil actualizado correctamente',
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->role,
+                'email_verified_at' => $user->email_verified_at,
+                'created_at' => $user->created_at,
+                'updated_at' => $user->updated_at,
+            ],
         ]);
     });
 

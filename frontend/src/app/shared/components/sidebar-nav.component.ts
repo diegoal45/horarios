@@ -26,6 +26,7 @@ import { NavItem } from './sidebar-nav.models';
       <a
         *ngFor="let item of navItems()"
         [routerLink]="item.route"
+        [fragment]="item.fragment"
         routerLinkActive="active"
         [routerLinkActiveOptions]="{ exact: false }"
         class="flex items-center gap-3 p-3 rounded-lg w-10 group-hover:w-[85%] transition-all overflow-hidden active:scale-90"
@@ -79,6 +80,7 @@ import { NavItem } from './sidebar-nav.models';
         <a
           *ngFor="let item of navItems()"
           [routerLink]="item.route"
+          [fragment]="item.fragment"
           routerLinkActive="active"
           [routerLinkActiveOptions]="{ exact: false }"
           class="flex items-center justify-center p-3 rounded-lg w-12 h-12 transition-all active:scale-90"
@@ -118,6 +120,7 @@ import { NavItem } from './sidebar-nav.models';
           <a
             *ngFor="let item of navItems()"
             [routerLink]="item.route"
+            [fragment]="item.fragment"
             routerLinkActive="active"
             [routerLinkActiveOptions]="{ exact: false }"
             (click)="closeMobileNav()"
@@ -156,8 +159,7 @@ export class SidebarNavComponent implements OnInit {
   navItems = signal<NavItem[]>([
     { icon: 'home', label: 'Inicio', route: '/dashboard/admin', isActive: true },
     { icon: 'group', label: 'Usuarios', route: '/dashboard/admin/users', isActive: false },
-    { icon: 'calendar_today', label: 'Horarios', route: '/dashboard/admin/schedules', isActive: false },
-    { icon: 'timer', label: 'Horas trabajadas', route: '/dashboard/admin/hours', isActive: false }
+    { icon: 'calendar_today', label: 'Horarios', route: '/dashboard/admin/schedules', isActive: false }
   ]);
 
   constructor(
@@ -185,9 +187,7 @@ export class SidebarNavComponent implements OnInit {
         { icon: 'home', label: 'Inicio', route: '/dashboard/admin', isActive: true },
         { icon: 'group', label: 'Usuarios', route: '/dashboard/admin/users', isActive: false },
         { icon: 'groups', label: 'Equipos', route: '/dashboard/admin/equipos', isActive: false },
-        { icon: 'calendar_today', label: 'Horarios', route: '/dashboard/admin/schedules', isActive: false },
-        { icon: 'schedule', label: 'Turnos', route: '/dashboard/admin/turnos', isActive: false },
-        { icon: 'timer', label: 'Horas trabajadas', route: '/dashboard/admin/hours', isActive: false }
+        { icon: 'calendar_today', label: 'Horarios', route: '/dashboard/admin/schedules', isActive: false }
       ]);
     } else if (lowerRole === 'jefe') {
       this.roleLabel.set('Jefe');
@@ -200,8 +200,7 @@ export class SidebarNavComponent implements OnInit {
       this.roleLabel.set('Trabajador');
       this.navItems.set([
         { icon: 'home', label: 'Inicio', route: '/dashboard/trabajador', isActive: true },
-        { icon: 'calendar_today', label: 'Mis Horarios', route: '/dashboard/trabajador/mis-horarios', isActive: false },
-        { icon: 'timer', label: 'Mis Horas', route: '/dashboard/trabajador/mis-horas', isActive: false }
+        { icon: 'calendar_today', label: 'Horario', route: '/dashboard/trabajador', fragment: 'download-section', isActive: false }
       ]);
     }
   }

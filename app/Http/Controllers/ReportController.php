@@ -201,54 +201,126 @@ class ReportController extends Controller
             }
 
             $selectedUserId = $request->query('user_id');
+            $selectedTeamId = $request->query('team_id');
             if ($selectedUserId !== null && !is_numeric((string) $selectedUserId)) {
                 return response()->json(['error' => 'Parametro user_id invalido'], 422);
             }
+            if ($selectedTeamId !== null && !is_numeric((string) $selectedTeamId)) {
+                return response()->json(['error' => 'Parametro team_id invalido'], 422);
+            }
             $selectedUserId = $selectedUserId !== null ? (int) $selectedUserId : null;
+            $selectedTeamId = $selectedTeamId !== null ? (int) $selectedTeamId : null;
 
-            // Obtener equipos liderados por el usuario (es jefe)
-            $teams = Team::where('leader_id', $user->id)->with('members')->get();
+            $normalizedRole = mb_strtolower((string) ($user->role ?? ''));
 
-            if ($teams->isEmpty()) {
-                return response()->json(['error' => 'No hay equipos para este usuario'], 404);
+            // Administrador: todos los equipos.
+            // Jefe: solo sus equipos.
+            // Trabajador: equipos donde pertenece como miembro.
+            if ($normalizedRole === 'administrador') {
+                $teams = Team::with('members')->get();
+            } elseif ($normalizedRole === 'jefe') {
+                $teams = Team::where('leader_id', $user->id)->with('members')->get();
+            } else {
+                if ($selectedUserId !== null && $selectedUserId !== (int) $user->id) {
+                    return response()->json(['error' => 'No autorizado para descargar horarios de otro usuario'], 403);
+                }
+
+                // Forzar que trabajador solo descargue su propio reporte.
+                $selectedUserId = (int) $user->id;
+
+                $teams = Team::whereHas('members', function ($query) use ($user) {
+                    $query->where('users.id', $user->id);
+                })->with('members')->get();
             }
 
             if ($selectedUserId !== null) {
-                $teams = $teams
-                    ->filter(function ($team) use ($selectedUserId) {
-                        return $team->members->contains('id', $selectedUserId);
-                    })
-                    ->values();
-
-                if ($teams->isEmpty()) {
-                    return response()->json(['error' => 'El usuario seleccionado no pertenece a tus equipos'], 404);
-                }
-            }
-
-            // Cargar schedules para cada equipo
-            foreach ($teams as $team) {
-                if ($selectedUserId !== null) {
-                    $team->setRelation(
-                        'members',
-                        $team->members->where('id', $selectedUserId)->values()
-                    );
+                // Permisos de descarga individual por rol.
+                if ($normalizedRole === 'trabajador' && $selectedUserId !== (int) $user->id) {
+                    return response()->json(['error' => 'No autorizado para descargar horarios de otro usuario'], 403);
                 }
 
-                $memberIds = $team->members->pluck('id')->toArray();
-                // Obtener todos los schedules de los miembros del equipo
-                $team->schedules = Schedule::whereIn('user_id', $memberIds)
+                if ($normalizedRole === 'jefe') {
+                    $canAccessUser = Team::where('leader_id', $user->id)
+                        ->whereHas('members', function ($query) use ($selectedUserId) {
+                            $query->where('users.id', $selectedUserId);
+                        })
+                        ->exists();
+
+                    if (!$canAccessUser) {
+                        return response()->json(['error' => 'El usuario seleccionado no pertenece a tus equipos'], 403);
+                    }
+                }
+
+                $selectedUser = User::find($selectedUserId);
+                if (!$selectedUser) {
+                    return response()->json(['error' => 'Usuario no encontrado'], 404);
+                }
+
+                // Para descarga individual: intentar primero el ultimo horario publicado del usuario.
+                $latestPublishedSchedule = Schedule::where('user_id', $selectedUserId)
+                    ->where('published', true)
                     ->with('shifts', 'user')
                     ->orderBy('week_start', 'desc')
-                    ->get();
-                    
-                Log::info('[ReportController] Team: ' . $team->name . ' - Members: ' . count($memberIds) . ' - Schedules: ' . count($team->schedules));
+                    ->first();
+
+                if (!$latestPublishedSchedule) {
+                    // Fallback: si no hay publicado, usar el ultimo horario disponible.
+                    $latestPublishedSchedule = Schedule::where('user_id', $selectedUserId)
+                        ->with('shifts', 'user')
+                        ->orderBy('week_start', 'desc')
+                        ->first();
+
+                    if (!$latestPublishedSchedule) {
+                        return response()->json(['error' => 'No hay horarios para este usuario'], 404);
+                    }
+                }
+
+                $teamName = Team::whereHas('members', function ($query) use ($selectedUserId) {
+                    $query->where('users.id', $selectedUserId);
+                })->value('name') ?? 'Horario individual';
+
+                $teams = collect([
+                    (object) [
+                        'name' => $teamName,
+                        'members' => collect([$selectedUser]),
+                        'schedules' => collect([$latestPublishedSchedule]),
+                    ],
+                ]);
+            } else {
+                if ($teams->isEmpty()) {
+                    return response()->json(['error' => 'No hay equipos para este usuario'], 404);
+                }
+
+                if ($selectedTeamId !== null) {
+                    $teams = $teams
+                        ->where('id', $selectedTeamId)
+                        ->values();
+
+                    if ($teams->isEmpty()) {
+                        return response()->json(['error' => 'El equipo seleccionado no esta disponible para tu usuario'], 404);
+                    }
+                }
+
+                // Cargar schedules para cada equipo
+                foreach ($teams as $team) {
+                    $memberIds = $team->members->pluck('id')->toArray();
+                    $team->schedules = Schedule::whereIn('user_id', $memberIds)
+                        ->where('published', true)
+                        ->with('shifts', 'user')
+                        ->orderBy('week_start', 'desc')
+                        ->get();
+
+                    Log::info('[ReportController] Team: ' . $team->name . ' - Members: ' . count($memberIds) . ' - Schedules: ' . count($team->schedules));
+                }
             }
 
             // Generar HTML y renderizar PDF en backend para evitar PDFs en blanco del cliente.
             $html = $this->generateScheduleHtml($teams, $user);
             $filename = $selectedUserId !== null
                 ? 'horario_usuario_' . $selectedUserId . '_' . date('Y-m-d') . '.pdf'
-                : 'horarios_' . date('Y-m-d') . '.pdf';
+                : ($selectedTeamId !== null
+                    ? 'horarios_equipo_' . $selectedTeamId . '_' . date('Y-m-d') . '.pdf'
+                    : 'horarios_' . date('Y-m-d') . '.pdf');
             $pdf = Pdf::loadHTML($html)->setPaper('a4', 'portrait');
 
             return $pdf->download($filename);

@@ -36,44 +36,14 @@ import { ModalService } from '../../../shared/services/modal.service';
             +{{ teamAvatars().length - 3 }}
           </div>
         </div>
-        <button 
-          (click)="onExportData()"
-          class="bg-slate-100 px-6 py-2.5 rounded-lg text-slate-900 font-semibold text-sm hover:bg-slate-200 transition-colors">
-          Exportar Datos
-        </button>
       </div>
     </div>
 
     <!-- Statistics Row -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-10">
+    <div class="grid grid-cols-1 lg:grid-cols-8 gap-6 mb-10">
       <!-- Metric Cards -->
       <div class="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-6">
         <app-stat-card *ngFor="let card of statCards()" [card]="card"></app-stat-card>
-      </div>
-
-      <!-- Reports and Audit Section -->
-      <div class="lg:col-span-4 bg-slate-900 p-8 rounded-xl relative overflow-hidden text-white flex flex-col justify-center border border-slate-800">
-        <div class="absolute top-0 right-0 w-32 h-32 bg-teal-500/5 rounded-full -mr-16 -mt-16 blur-3xl"></div>
-        <div class="relative z-10">
-          <h4 class="text-2xl font-extrabold mb-1 tracking-tight text-white">Reportes del Sistema</h4>
-          <p class="text-slate-400 text-sm mb-6 leading-relaxed">
-            Genera y descarga informes detallados de la plataforma.
-          </p>
-          <div class="flex flex-col gap-3">
-            <button 
-              (click)="onGenerateUserReport()"
-              class="flex items-center justify-between w-full bg-slate-800 hover:bg-slate-700 transition-all px-4 py-3 rounded-lg group border border-slate-700/50">
-              <span class="text-sm font-semibold text-slate-100">Generar Reporte de Usuarios</span>
-              <span class="material-symbols-outlined text-lg text-teal-500 group-hover:translate-x-1 transition-transform">download</span>
-            </button>
-            <button 
-              (click)="onShowAccessLog()"
-              class="flex items-center justify-between w-full bg-slate-800 hover:bg-slate-700 transition-all px-4 py-3 rounded-lg group border border-slate-700/50">
-              <span class="text-sm font-semibold text-slate-100">Auditoría de Acceso</span>
-              <span class="material-symbols-outlined text-lg text-teal-500 group-hover:translate-x-1 transition-transform">history_edu</span>
-            </button>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -190,35 +160,18 @@ import { ModalService } from '../../../shared/services/modal.service';
             </div>
           </div>
 
-          <!-- Placeholder for Schedule Content -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="p-6 bg-slate-50 rounded-lg border border-slate-200">
-              <h5 class="font-bold text-slate-900 mb-4 flex items-center gap-2">
-                <span class="material-symbols-outlined">calendar_today</span>
-                Horario de esta semana
-              </h5>
-              <div class="space-y-2 text-sm text-slate-600">
-                <p>📅 Lunes - Viernes: 09:00 AM - 05:00 PM</p>
-                <p>🕐 Sábado: 10:00 AM - 02:00 PM</p>
-                <p>📴 Domingo: Descanso</p>
-              </div>
-            </div>
+          <!-- Schedule Loading State -->
+          <div *ngIf="isLoadingSchedule()" class="flex justify-center items-center py-8">
+            <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-600"></div>
+          </div>
 
-            <div class="p-6 bg-slate-50 rounded-lg border border-slate-200">
-              <h5 class="font-bold text-slate-900 mb-4 flex items-center gap-2">
-                <span class="material-symbols-outlined">timer</span>
-                Horas totales
-              </h5>
-              <div class="space-y-2 text-sm text-slate-600">
-                <p>⏱️ Esta semana: 44 horas</p>
-                <p>📊 Mes actual: 176 horas</p>
-                <p>✅ Objetivo: 160 horas</p>
-              </div>
-            </div>
+          <!-- No Schedules Message -->
+          <div *ngIf="!isLoadingSchedule() && employeeSchedules().length === 0" class="text-center py-8 text-slate-500">
+            No tiene horarios publicados.
           </div>
 
           <!-- Schedule Table -->
-          <div class="overflow-x-auto">
+          <div *ngIf="!isLoadingSchedule() && employeeSchedules().length > 0" class="overflow-x-auto">
             <table class="w-full text-sm">
               <thead class="bg-slate-100 border-b border-slate-200">
                 <tr>
@@ -230,40 +183,15 @@ import { ModalService } from '../../../shared/services/modal.service';
                 </tr>
               </thead>
               <tbody>
-                <tr class="border-b border-slate-200 hover:bg-slate-50">
-                  <td class="px-4 py-3 font-medium text-slate-900">Lunes</td>
-                  <td class="px-4 py-3 text-slate-600">09:00 AM</td>
-                  <td class="px-4 py-3 text-slate-600">05:30 PM</td>
-                  <td class="px-4 py-3 text-slate-600">8.5h</td>
-                  <td class="px-4 py-3"><span class="px-2 py-1 bg-green-100 text-green-700 text-xs font-bold rounded">Completado</span></td>
-                </tr>
-                <tr class="border-b border-slate-200 hover:bg-slate-50">
-                  <td class="px-4 py-3 font-medium text-slate-900">Martes</td>
-                  <td class="px-4 py-3 text-slate-600">08:45 AM</td>
-                  <td class="px-4 py-3 text-slate-600">05:15 PM</td>
-                  <td class="px-4 py-3 text-slate-600">8.5h</td>
-                  <td class="px-4 py-3"><span class="px-2 py-1 bg-green-100 text-green-700 text-xs font-bold rounded">Completado</span></td>
-                </tr>
-                <tr class="border-b border-slate-200 hover:bg-slate-50">
-                  <td class="px-4 py-3 font-medium text-slate-900">Miércoles</td>
-                  <td class="px-4 py-3 text-slate-600">09:15 AM</td>
-                  <td class="px-4 py-3 text-slate-600">05:45 PM</td>
-                  <td class="px-4 py-3 text-slate-600">8.5h</td>
-                  <td class="px-4 py-3"><span class="px-2 py-1 bg-green-100 text-green-700 text-xs font-bold rounded">Completado</span></td>
-                </tr>
-                <tr class="border-b border-slate-200 hover:bg-slate-50">
-                  <td class="px-4 py-3 font-medium text-slate-900">Jueves</td>
-                  <td class="px-4 py-3 text-slate-600">09:00 AM</td>
-                  <td class="px-4 py-3 text-slate-600">05:00 PM</td>
-                  <td class="px-4 py-3 text-slate-600">8h</td>
-                  <td class="px-4 py-3"><span class="px-2 py-1 bg-green-100 text-green-700 text-xs font-bold rounded">Completado</span></td>
-                </tr>
-                <tr class="border-b border-slate-200 hover:bg-slate-50">
-                  <td class="px-4 py-3 font-medium text-slate-900">Viernes</td>
-                  <td class="px-4 py-3 text-slate-600">09:30 AM</td>
-                  <td class="px-4 py-3 text-slate-600">05:00 PM</td>
-                  <td class="px-4 py-3 text-slate-600">7.5h</td>
-                  <td class="px-4 py-3"><span class="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs font-bold rounded">En progreso</span></td>
+                <tr *ngFor="let sched of employeeSchedules()">
+                  <td class="px-4 py-3 font-medium text-slate-900">{{ sched.day || '-' }}</td>
+                  <td class="px-4 py-3 text-slate-600">{{ sched.start_time || '-' }}</td>
+                  <td class="px-4 py-3 text-slate-600">{{ sched.end_time || '-' }}</td>
+                  <td class="px-4 py-3 text-slate-600">{{ sched.hours || '-' }}</td>
+                  <td class="px-4 py-3">
+                    <span *ngIf="sched.status === 'published' || sched.status === 'Publicado'" class="px-2 py-1 bg-green-100 text-green-700 text-xs font-bold rounded">Publicado</span>
+                    <span *ngIf="sched.status !== 'published' && sched.status !== 'Publicado'" class="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs font-bold rounded">Borrador</span>
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -275,6 +203,8 @@ import { ModalService } from '../../../shared/services/modal.service';
   styles: []
 })
 export class AdminDashboardComponent implements OnInit {
+    employeeSchedules = signal<any[]>([]);
+    isLoadingSchedule = signal<boolean>(false);
   statCards = signal<StatCard[]>([
     {
       icon: 'groups',
@@ -289,7 +219,7 @@ export class AdminDashboardComponent implements OnInit {
       icon: 'bolt',
       iconBgColor: 'bg-amber-50',
       iconColor: 'text-amber-600',
-      label: 'Turnos Activos',
+      label: 'Equipos Totales',
       value: '0',
       trend: 'En tiempo real',
       trendColor: 'amber'
@@ -378,7 +308,7 @@ export class AdminDashboardComponent implements OnInit {
 
         this.employees.set(employees);
 
-        // Actualizar estadísticas
+        // Actualizar estadísticas de usuarios
         const stats = this.statCards();
         stats[0].value = users.length;
         this.statCards.set([...stats]);
@@ -388,7 +318,20 @@ export class AdminDashboardComponent implements OnInit {
           employees.slice(0, 15).map(e => e.avatar)
         );
 
-        this.isLoading.set(false);
+        // Cargar equipos y actualizar estadística
+        this.apiService.getTeams().subscribe({
+          next: (teams: any[]) => {
+            const stats = this.statCards();
+            stats[1].value = teams.length;
+            this.statCards.set([...stats]);
+            this.isLoading.set(false);
+          },
+          error: (error) => {
+            console.error('%c[Dashboard] ❌ ERROR cargando equipos:', 'color: red; font-weight: bold', error);
+            this.toastService.error('❌ Error al cargar equipos');
+            this.isLoading.set(false);
+          }
+        });
       },
       error: (error) => {
         console.error('%c[Dashboard] ❌ ERROR cargando usuarios:', 'color: red; font-weight: bold', error);
@@ -399,8 +342,6 @@ export class AdminDashboardComponent implements OnInit {
         this.isLoading.set(false);
       }
     });
-
-    // TODO: Cargar turnos activos cuando el API esté disponible
   }
 
   // Manejadores de botones
@@ -627,6 +568,22 @@ export class AdminDashboardComponent implements OnInit {
     console.log('%c[Dashboard] Ver horario de:', 'color: green; font-weight: bold', employee.name);
     this.selectedEmployee.set(employee);
     this.currentView.set('schedule');
+    this.isLoadingSchedule.set(true);
+    this.employeeSchedules.set([]);
+    this.apiService.getUserSchedules(employee.id ?? 0).subscribe({
+      next: (schedules: any[]) => {
+        this.employeeSchedules.set(schedules);
+        this.isLoadingSchedule.set(false);
+        if (!schedules || schedules.length === 0) {
+          this.toastService.info('El usuario no tiene horarios publicados');
+        }
+      },
+      error: (error) => {
+        this.employeeSchedules.set([]);
+        this.isLoadingSchedule.set(false);
+        this.toastService.error('Error al cargar los horarios');
+      }
+    });
     this.toastService.info(`📅 Viendo horario de ${employee.name}`);
   }
 

@@ -1,0 +1,57 @@
+<div *ngIf="calendar">
+  <div class="grid grid-cols-[64px_repeat(5,1fr)] min-w-[800px]">
+    <!-- Header Days -->
+    <div class="sticky top-0 z-20 bg-surface-container-low border-b border-outline-variant/10 py-2"></div>
+    <ng-container *ngFor="let day of calendar.days">
+      <div class="sticky top-0 z-20 bg-surface-container-low border-b border-outline-variant/10 py-2 text-center">
+        <p class="text-[0.65rem] text-secondary uppercase font-semibold">{{ day.short }}</p>
+        <p class="text-title-sm font-bold">{{ day.date }}</p>
+      </div>
+    </ng-container>
+    <!-- Time Slots & Grid Lines -->
+    <div class="contents">
+      <!-- Hour Column -->
+      <div class="col-start-1 bg-surface-container-low/20 space-y-0">
+        <div *ngFor="let hour of calendar.hours" class="grid-row-h flex items-start justify-center pt-2 text-[0.65rem] font-medium text-secondary">{{ hour }}</div>
+      </div>
+      <!-- Grid Background -->
+      <div class="col-start-2 col-end-7 grid grid-cols-5 relative" [style.height.px]="calendar.gridHeight">
+        <!-- Column lines -->
+        <div class="absolute inset-0 grid grid-cols-5 pointer-events-none">
+          <div class="border-r border-outline-variant/5"></div>
+          <div class="border-r border-outline-variant/5"></div>
+          <div class="border-r border-outline-variant/5"></div>
+          <div class="border-r border-outline-variant/5"></div>
+          <div></div>
+        </div>
+        <!-- Row lines -->
+        <div class="absolute inset-0 flex flex-col pointer-events-none">
+          <div *ngFor="let hour of calendar.hours; let last = last" class="grid-row-h border-b border-outline-variant/5" [ngClass]="{'border-b-0': last}"></div>
+        </div>
+        <!-- Shifts -->
+        <ng-container *ngFor="let shift of calendar.shifts">
+          <div
+            [style.top.px]="shift.top"
+            [style.left.%]="shift.left"
+            [style.width.%]="shift.width"
+            [style.height.px]="shift.height"
+            class="absolute bg-primary/10 border border-primary/20 glass-card text-on-surface p-2.5 rounded-lg shadow-sm z-10 flex flex-col justify-between border-l-[4px] border-l-primary"
+          >
+            <div>
+              <p class="text-[0.55rem] font-bold uppercase tracking-widest text-primary">{{ shift.type }}</p>
+              <p class="text-[0.7rem] font-bold leading-tight mt-0.5">{{ shift.location }}</p>
+            </div>
+            <p class="text-[0.6rem] font-medium text-secondary">{{ shift.start }} - {{ shift.end }}</p>
+          </div>
+        </ng-container>
+
+        <div
+          *ngIf="!calendar.shifts || calendar.shifts.length === 0"
+          class="absolute inset-0 flex items-center justify-center text-sm text-secondary"
+        >
+          No hay turnos para mostrar en esta semana.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

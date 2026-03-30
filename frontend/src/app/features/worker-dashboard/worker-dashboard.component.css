@@ -1,0 +1,5 @@
+/* worker-dashboard.component.css */
+/* Puedes agregar estilos personalizados aquí si es necesario. Tailwind cubre la mayoría de los estilos. */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
